@@ -8,84 +8,112 @@
                 "data": {
                     "id": "a",
                     "value": "a",
-                    "name": "a"
+                    "name": "a",
+                    "MODE": "COMPUTE",
+                    "RAM": "10GB",
+                    "CPU": "20",
+                    "X": 300,
+                    "Y": 100
                 }
             },
             {
                 "data": {
                     "id": "b",
                     "value": "b",
-                    "name": "b"
+                    "name": "b",
+                    "MODE": "COMPUTE",
+                    "RAM": "10GB",
+                    "CPU": "20",
+                    "X": 100,
+                    "Y": 300
                 }
             },
             {
                 "data": {
                     "id": "c",
                     "value": "c",
-                    "name": "c"
+                    "name": "c",
+                    "MODE": "ROUTER",
+                    "X": 700,
+                    "Y": 0
                 }
             },
             {
                 "data": {
                     "id": "d",
                     "value": "d",
-                    "name": "d"
+                    "name": "d",
+                    "MODE": "COMPUTE",
+                    "RAM": "10GB",
+                    "CPU": "20",
+                    "X": 500,
+                    "Y": 500
                 }
             },
             {
                 "data": {
                     "id": "e",
                     "value": "e",
-                    "name": "e"
+                    "name": "e",
+                    "MODE": "COMPUTE",
+                    "RAM": "10GB",
+                    "CPU": "20",
+                    "X": 800,
+                    "Y": 300
                 }
             },
             {
                 "data": {
                     "id": "f",
                     "value": "f",
-                    "name": "f"
+                    "name": "f",
+                    "MODE": "COMPUTE",
+                    "RAM": "10GB",
+                    "CPU": "20",
+                    "X": 1000,
+                    "Y": 500
                 }
             }
         ],
         "edges": [
             {
                 "data": {
-                    "weight": 0.2,
+                    "bandwidth": 20000,
                     "source": "a",
                     "target": "b"
                 }
             },
             {
                 "data": {
-                    "weight": 0.3,
+                    "bandwidth": 2000,
                     "source": "a",
                     "target": "c"
                 }
             },
             {
                 "data": {
-                    "weight": 0.7,
+                    "bandwidth": 1500,
                     "source": "a",
                     "target": "d"
                 }
             },
             {
                 "data": {
-                    "weight": 0.9,
+                    "bandwidth": 2800,
                     "source": "c",
                     "target": "d"
                 }
             },
             {
                 "data": {
-                    "weight": 0.1,
+                    "bandwidth": 1000,
                     "source": "c",
                     "target": "e"
                 }
             },
             {
                 "data": {
-                    "weight": 0.6,
+                    "bandwidth": 2500,
                     "source": "c",
                     "target": "f"
                 }
