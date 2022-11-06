@@ -1,0 +1,95 @@
+{
+    "data": [],
+    "directed": false,
+    "multigraph": false,
+    "elements": {
+        "nodes": [
+            {
+                "data": {
+                    "id": "a",
+                    "value": "a",
+                    "name": "a"
+                }
+            },
+            {
+                "data": {
+                    "id": "b",
+                    "value": "b",
+                    "name": "b"
+                }
+            },
+            {
+                "data": {
+                    "id": "c",
+                    "value": "c",
+                    "name": "c"
+                }
+            },
+            {
+                "data": {
+                    "id": "d",
+                    "value": "d",
+                    "name": "d"
+                }
+            },
+            {
+                "data": {
+                    "id": "e",
+                    "value": "e",
+                    "name": "e"
+                }
+            },
+            {
+                "data": {
+                    "id": "f",
+                    "value": "f",
+                    "name": "f"
+                }
+            }
+        ],
+        "edges": [
+            {
+                "data": {
+                    "weight": 0.2,
+                    "source": "a",
+                    "target": "b"
+                }
+            },
+            {
+                "data": {
+                    "weight": 0.3,
+                    "source": "a",
+                    "target": "c"
+                }
+            },
+            {
+                "data": {
+                    "weight": 0.7,
+                    "source": "a",
+                    "target": "d"
+                }
+            },
+            {
+                "data": {
+                    "weight": 0.9,
+                    "source": "c",
+                    "target": "d"
+                }
+            },
+            {
+                "data": {
+                    "weight": 0.1,
+                    "source": "c",
+                    "target": "e"
+                }
+            },
+            {
+                "data": {
+                    "weight": 0.6,
+                    "source": "c",
+                    "target": "f"
+                }
+            }
+        ]
+    }
+}
