@@ -11,19 +11,19 @@ if __name__ == "__main__":
     myTP = TP()
     myTP.load_cyjs('./test_graph.json')
 
-    # testPacket = pk('testUser','1', 2048)
-    # print("Transmition time for packet from a to b is: " + str(testPacket.calculate_transmition_time('b','a',myTP)) + " Seconds")
+    testPacket = pk('testUser','1', 10240)
+    print("Packet delivery time for packet from a to b is: " + str(myTP.get_packet_delivery_time('b','a',testPacket)) + " Seconds")
     
 
     myTP.save_network_png('./test.png')
-    print(myTP.get_distance('d','c'))
+    # print("Propgation time of d to c is: " + str(myTP.get_packet_delivery_time('d','c')))
     # edges = myTP.get_edges()
     # print(myTP.get_links())
     # print(myTP.get_routers())
     # graph = myTP.G.edges
     # print(myTP.get_link_bitrates())
     # print(('a','b',graph))
-    # myTP.get_all_shortest_paths(save=True, jsonFile='./shortest_path.json')
+    myTP.get_all_shortest_paths(save=True, jsonFile='./shortest_path.json')
     # myTP.all_shortest_path_weight()
     # myTP.print_graph()
     # myTP.dump_cyjs(jsonFile='dump.json')

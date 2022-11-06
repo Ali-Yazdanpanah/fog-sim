@@ -80,42 +80,48 @@
                 "data": {
                     "bandwidth": 20000,
                     "source": "a",
-                    "target": "b"
+                    "target": "b",
+                    "PS": 300000000
                 }
             },
             {
                 "data": {
                     "bandwidth": 2000,
                     "source": "a",
-                    "target": "c"
+                    "target": "c",
+                    "PS": 300000000
                 }
             },
             {
                 "data": {
                     "bandwidth": 1500,
                     "source": "a",
-                    "target": "d"
+                    "target": "d",
+                    "PS": 300000000
                 }
             },
             {
                 "data": {
                     "bandwidth": 2800,
                     "source": "c",
-                    "target": "d"
+                    "target": "d",
+                    "PS": 300000000
                 }
             },
             {
                 "data": {
                     "bandwidth": 1000,
                     "source": "c",
-                    "target": "e"
+                    "target": "e",
+                    "PS": 300000000
                 }
             },
             {
                 "data": {
                     "bandwidth": 2500,
                     "source": "c",
-                    "target": "f"
+                    "target": "f",
+                    "PS": 300000000
                 }
             }
         ]

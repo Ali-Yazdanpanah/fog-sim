@@ -44,8 +44,6 @@ class Topology:
         self.nodeAttributes = {}
         self.logger = logger or logging.getLogger(__name__)
 
-
-
     def get_nodes(self):
         """
         Returns:
@@ -67,7 +65,7 @@ class Topology:
         """
         return [node for node in self.get_nodes(data=True) if node[1]['MODE'] == 'ROUTER']
 
-    def get_distance(self, source, target):
+    def get_distance(self, source, target, _t):
         """
         Returns:
             float: a float of distance between two nodes
@@ -99,8 +97,19 @@ class Topology:
             if (edge[0] == source and edge[1] == target) or (edge[0] == target and edge[1] == source):
                 return edge[2]['bandwidth']
 
+    def get_link_propagation_speed(self, source, target):
+        for edge in self.get_links():
+            if (edge[0] == source and edge[1] == target) or (edge[0] == target and edge[1] == source):
+                return edge[2]['PS']
+
     def get_link_bitrates(self):
         return [(link[0],link[1], self.calculate_bitrate(link)) for link in self.get_links()]
+
+    def get_link_propagation_time(self, source, target):
+        return self.get_distance(source, target, _t=None) / self.get_link_propagation_speed(source, target)
+
+    def get_packet_delivery_time(self, source, target, packet):
+        return self.get_link_propagation_time(source, target) + packet.calculate_transmition_time(source,target,self)
 
     def get_all_shortests_paths_routes(self):
         shortestPathRouteData = nx.all_pairs_dijkstra_path(G=self.G, weight=self.return_bandwidth)
@@ -111,26 +120,28 @@ class Topology:
         return dataDict
 
     def get_path_cost(self, source, target):
-        shortestPathData = self.all_shortest_path_bandwidth()
+        shortestPathData = self.all_shortest_path_distance()
         return shortestPathData[source][target]
 
     def get_all_shortest_paths(self, save, jsonFile):
         def save(jsonFile, shortestPathData):
             with open(jsonFile, 'w') as file:
                 js.dump(shortestPathData, file, indent=4)
-        shortestPathbandwidthData = self.all_shortest_path_bandwidth()
+        # print(self.all_shortest_path_distance())
+        shortestCostData = self.all_shortest_path_distance()
         shortestPathRouteData = self.get_all_shortests_paths_routes()
 
         dataDict = defaultdict(lambda : defaultdict(dict))
         
         for source in self.get_nodes():
             for target in self.get_nodes():
-                dataDict[source][target]['cost'] = shortestPathbandwidthData[source][target]
-                dataDict[source][target]['route'] = shortestPathRouteData[source][target]
+                # print(shortestCostData[source][target])
+                dataDict[source[0]][target[0]]['cost'] = shortestCostData[source[0]][target[0]]
+                dataDict[source[0]][target[0]]['route'] = shortestPathRouteData[source[0]][target[0]]
 
         if save:
             save(jsonFile,dataDict)
-        print(shortestPathRouteData)
+        # print(shortestPathRouteData)
         return dataDict
 
     def get_nodes_att(self):
@@ -175,7 +186,6 @@ class Topology:
             # js.dump(cyjsGraph,file, indent=4)
         plt.savefig(pngFile)
 
-
     def print_graph(self):
         print(self.G.edges)
         for node in self.G.nodes:
@@ -199,24 +209,19 @@ class Topology:
             networkDataJson = nx.cytoscape_data(self.G)
             js.dump(networkDataJson, file, indent=4)
 
-
-
     def return_bandwidth(self, source, target, edge):
         return edge['bandwidth']
-
 
     def return_link_bitrate(self, source, target):
         for edge in self.get_links():
             if (edge[0] == source and edge[1] == target) or (edge[0] == target and edge[1] == source):
                 return self.calculate_bitrate(edge)
     
-    # get link bitrate
     def calculate_bitrate(self, edge):
         return edge[2]['bandwidth']*np.log(1 + self.SNR)
 
-
-    def all_shortest_path_bandwidth(self):
-        shortestPathData = nx.shortest_path_length(G=self.G, weight=self.return_bandwidth, method='dijkstra')
+    def all_shortest_path_distance(self):
+        shortestPathData = nx.shortest_path_length(G=self.G, weight=self.get_distance, method='dijkstra')
         dataDict = dict()
         for data in shortestPathData:
             dataDict[data[0]] = dict()
