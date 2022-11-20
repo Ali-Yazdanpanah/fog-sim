@@ -7,14 +7,20 @@ import json as js
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
+import simpy
 
 from networkx.readwrite import json_graph
 from collections import defaultdict
 
 
+class Service:
 
 
-
+    def __init__(self, cpu, memory, logger=None):
+        # G is a nx.networkx graph
+        self.memory = memory
+        self.cpu = cpu
+        self.logger = logger or logging.getLogger(__name__)
 
 
 class Topology:
@@ -108,8 +114,11 @@ class Topology:
     def get_link_propagation_time(self, source, target):
         return self.get_distance(source, target, _t=None) / self.get_link_propagation_speed(source, target)
 
-    def get_packet_delivery_time(self, source, target, packet):
-        return self.get_link_propagation_time(source, target) + packet.calculate_transmition_time(source,target,self)
+    def get_packet_delivery_time(self, source, target, packet, env):
+        # transmitionTime = packet.calculate_transmition_time(source,target,self)
+        time = self.get_link_propagation_time(source, target) + packet.calculate_transmition_time(source,target,self)
+        print("it takes: " + str(time))
+        yield env.timeout(time)
 
     def get_all_shortests_paths_routes(self):
         shortestPathRouteData = nx.all_pairs_dijkstra_path(G=self.G, weight=self.return_bandwidth)
