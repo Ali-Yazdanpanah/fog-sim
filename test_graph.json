@@ -11,9 +11,21 @@
                     "name": "a",
                     "MODE": "COMPUTE",
                     "RAM": "10GB",
-                    "CPU": "20",
+                    "CPU": 20,
+                    "IPS": 1000,
+                    "LOAD_TIME": 6,
                     "X": 300,
                     "Y": 100
+                }
+            },
+            {
+                "data": {
+                    "id": "zone_a",
+                    "value": "a",
+                    "name": "a",
+                    "MODE": "ZONE",
+                    "X": 0,
+                    "Y": 0
                 }
             },
             {
@@ -23,7 +35,9 @@
                     "name": "b",
                     "MODE": "COMPUTE",
                     "RAM": "10GB",
-                    "CPU": "20",
+                    "CPU": 20,
+                    "LOAD_TIME": 6,
+                    "IPS": 1000,
                     "X": 100,
                     "Y": 300
                 }
@@ -45,7 +59,9 @@
                     "name": "d",
                     "MODE": "COMPUTE",
                     "RAM": "10GB",
-                    "CPU": "20",
+                    "CPU": 20,
+                    "IPS": 1000,
+                    "LOAD_TIME": 6,
                     "X": 500,
                     "Y": 500
                 }
@@ -57,7 +73,9 @@
                     "name": "e",
                     "MODE": "COMPUTE",
                     "RAM": "10GB",
-                    "CPU": "20",
+                    "CPU": 20,
+                    "IPS": 1000,
+                    "LOAD_TIME": 6,
                     "X": 800,
                     "Y": 300
                 }
@@ -69,7 +87,9 @@
                     "name": "f",
                     "MODE": "COMPUTE",
                     "RAM": "10GB",
-                    "CPU": "20",
+                    "CPU": 20,
+                    "IPS": 1000,
+                    "LOAD_TIME": 6,
                     "X": 1000,
                     "Y": 500
                 }
@@ -81,6 +101,7 @@
                     "bandwidth": 20000,
                     "source": "a",
                     "target": "b",
+                    "SNR": 30,
                     "PS": 300000000
                 }
             },
