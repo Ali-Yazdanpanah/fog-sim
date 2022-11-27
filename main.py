@@ -44,7 +44,8 @@ if __name__ == "__main__":
     # myTP.load_cyjs('./test_graph.json')
 
     testPacket1 = pk('test 1', 'a','e', 2048)
-    testPacket2 = pk('test 2','b','c', 1)
+    testPacket2 = pk('test 2','b','f', 2048)
+    testPacket3 = pk('test 3','b','f', 2048)
     # # print("Packet delivery time for packet from a to b is: " + str(myTP.get_packet_delivery_time('b','a',testPacket)) + " Seconds")
     
     data = []
@@ -56,11 +57,12 @@ if __name__ == "__main__":
 
     # myTP.save_network_png('./test.png')
 
-    env.process(myTP.queue_packet_for_transmition('a',testPacket1, 0))
-    env.process(myTP.queue_packet_for_transmition('b',testPacket2, 0))
-    env.process(myTP.process_recieved_packet(0.0001))
-    env.process(myTP.transimition_loop(0.0001))
-    env.run(until=5)
+    env.process(myTP.queue_packet_for_transmition('a',testPacket1, 2))
+    env.process(myTP.queue_packet_for_transmition('b',testPacket2, 2))
+    env.process(myTP.queue_packet_for_transmition('b',testPacket3, 2))
+    # env.process(myTP.process_recieved_packets_loop())
+    env.process(myTP.start())
+    env.run(until=100)
     # print(myTP.next_hop('a','d'))
 
     # for d in data:

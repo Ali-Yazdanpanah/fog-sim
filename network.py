@@ -15,6 +15,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 import simpy
+from simpy.util import start_delayed
 
 
 from simpy.resources.store import Store
@@ -46,6 +47,7 @@ class Topology:
     def __init__(self, env, logger=None, *args, **kwargs):
         # G is a nx.networkx graph
         self.G = None
+        self.until = 0
         self.nodeAttributes = {}
         self.linkStores = {}
         self.nodeStores = {}
@@ -189,52 +191,89 @@ class Topology:
         Returns:
             returns the delievery time of the specified packet on the specified link using source and destination target
         """
-        return self.get_link_propagation_delay(source, target) + packet.get_transmition_time(source,target,self)
+        return self.get_link_propagation_delay(source, target) + packet.get_transmition_delay(source,target,self)
 
-    def queue_packet_for_transmition(self,source, packet, time):
+    def queue_packet_for_transmition(self,current, packet, time):
+        delay = time - self.env.now 
+        # print(delay)
+        if delay == 0:
+            yield self.put_packet_in_ts_queue(current[0], packet) 
+        else:
+            yield start_delayed(self.env ,self.put_packet_in_ts_queue(current[0], packet), delay)
+
+    
+    def put_packet_in_ts_queue(self, current, packet):
+        print("Putting packet ", packet.name ," on transmition queue in node ", current, " at ", str(self.env.now))
         for node in self.get_nodes():
-            if node[0] == source:
-                yield self.env.timeout(time)
+            if node[0] == current:
                 yield self.transmitionQueues[node[0]].put(packet)
-                
-    def process_recieved_packet(self, interval):
+
+
+    def recieve_packet(self, sender, reciever):
+        # yield self.env.timeout(delay)
+        packet = yield self.linkStores[sender+'-'+reciever].get()    
+        if packet.destination == reciever:
+            print("Packet ", packet.name, " reached destination ", reciever, " at ", str(self.env.now))
+            yield self.env.timeout(0)
+        else:
+            print("Packet ", packet.name, " recieved at", reciever, "...puting in queue at", str(self.env.now))
+            yield self.transmitionQueues[reciever].put(packet) 
+
+    def transmit_packet(self, packet, sender, reciever):
+        # yield self.env.timeout(delay)
+        print("Packet ", packet.name, " transmited to ", reciever, " from ", sender, " at ", str(self.env.now))
+        yield self.linkStores[sender+'-'+reciever].put(packet)
+        
+
+    def transimition_loop(self):
         while True:
-            yield self.env.timeout(interval)
-            for node in self.get_nodes():
-                for neighbor in self.get_neighbors(node[0]):
-                    if len(self.linkStores[neighbor[0]+'-'+node[0]].items) > 0:
-                        yield self.env.timeout(self.get_link_propagation_delay(neighbor[0],node[0]))
-                        packet = yield self.linkStores[neighbor[0]+'-'+node[0]].get()
-                        if packet.destination == node[0]:
-                            print("Packet ", packet.name, " reached destination ", node[0], " at ", str(self.env.now))
-                        else:
-                            print("Packet ", packet.name, " recieved at", node[0], "...puting in queue at", str(self.env.now))
-                            self.transmitionQueues[node[0]].put(packet) 
-
-    def next_hop(self, node, target):
-        return self.routingTable[node][target][0][1]
+            for current in self.get_nodes():
+                if len(self.transmitionQueues[current[0]].items) > 0:
+                    packet = yield self.transmitionQueues[current[0]].get()
+                    next = self.next_hop(current[0],packet.destination)
+                    delay = packet.get_transmition_delay(current[0],next,self)
+                    print("link ", neighbor[0], "-", current[0], " transmition delay is ", delay)
+                    start_delayed(self.env ,self.transmit_packet(packet=packet, sender=current[0], reciever=next), delay)
 
 
-    def transimition_loop(self, interval):
+    def process_recieved_packets_loop(self):
         while True:
-            yield self.env.timeout(interval)
-            for node in self.get_nodes():
-                for item in self.transmitionQueues[node[0]].items:
-                    if len(self.transmitionQueues[node[0]].items) > 0:
-                        packet = yield self.transmitionQueues[node[0]].get()
-                        next = self.next_hop(node[0],packet.destination)
-                        yield self.env.timeout(packet.get_transmition_time(node[0],next,self))
-                        print("Packet ", packet.name, " sent to ", next, " from ", node[0], " at ", str(self.env.now))
-                        self.linkStores[node[0]+'-'+next].put(packet)
-                        
+            for current in self.get_nodes():
+                for neighbor in self.get_neighbors(current[0]):
+                    if len(self.linkStores[neighbor[0]+'-'+current[0]].items) > 0:
+                        delay = self.get_link_propagation_delay(neighbor[0],current[0])
+                        print("link ", neighbor[0], "-", current[0], " propagation delay is ", delay)
+                        start_delayed(self.env ,self.recieve_packet(sender=neighbor[0],reciever=current[0]), delay)
+            
+
+    def start(self):
+        while True:
+            for current in self.get_nodes():
+                if len(self.transmitionQueues[current[0]].items) > 0:
+                    packet = yield self.transmitionQueues[current[0]].get()
+                    next = self.next_hop(current[0],packet.destination)
+                    delay = packet.get_transmition_delay(current[0],next,self)
+                    # print("link ", neighbor[0], "-", current[0], " transmition delay is ", delay)
+                    start_delayed(self.env ,self.transmit_packet(packet=packet, sender=current[0], reciever=next), delay)
+                for neighbor in self.get_neighbors(current[0]):
+                    if len(self.linkStores[neighbor[0]+'-'+current[0]].items) > 0:
+                        delay = self.get_link_propagation_delay(neighbor[0],current[0])
+                        # print("link ", neighbor[0], "-", current[0], " propagation delay is ", delay)
+                        yield start_delayed(self.env ,self.recieve_packet(sender=neighbor[0],reciever=current[0]), delay)
+            self.env.step()
+
+    def next_hop(self, current, target):
+        return self.routingTable[current][target][0][1]
+
+
                                             
     
-    def send_packet(self, source, target, packet, env):
-        """
-        Simulates sending a packet
-        """
-        time = self.get_packet_delivery_time(source, target, packet)
-        yield env.timeout(time)
+    # def send_packet(self, source, target, packet, env):
+    #     """
+    #     Simulates sending a packet
+    #     """
+    #     time = self.get_packet_delivery_time(source, target, packet)
+    #     yield env.timeout(time)
 
 
     def create_routing_table(self):
@@ -447,7 +486,7 @@ class Packet:
         self.Time = time.time()
         self.logger = logger or logging.getLogger(__name__) 
 
-    def get_transmition_time(self, source, destination, topology):
+    def get_transmition_delay(self, source, destination, topology):
         # return topology.get_link_bitrate(source, destination)
         return (self.size / topology.get_link_bitrate(source, destination))
            

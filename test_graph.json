@@ -138,7 +138,7 @@
             },
             {
                 "data": {
-                    "bandwidth": 1000,
+                    "bandwidth": 3000,
                     "source": "c",
                     "target": "e",
                     "SNR": 30,
