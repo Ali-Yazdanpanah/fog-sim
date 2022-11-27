@@ -16,14 +16,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import simpy
 
+
+from simpy.resources.store import Store
 from networkx.readwrite import json_graph
 from collections import defaultdict
-
-
+from util import AutoVivification
 #===============================================================
 # Topology
 # / This class is responsible for modeling network topology
 #===============================================================
+
+
+
+
 
 class Topology:
     """
@@ -37,16 +42,36 @@ class Topology:
 
     SNR = 30
 
-    def __init__(self, logger=None):
+
+    def __init__(self, env, logger=None, *args, **kwargs):
         # G is a nx.networkx graph
         self.G = None
         self.nodeAttributes = {}
+        self.linkStores = {}
+        self.nodeStores = {}
+        self.transmitionQueues = {}
+        self.recievedQueues = {}
+        self.routingTable = AutoVivification()
         self.logger = logger or logging.getLogger(__name__)
+        self.env = env
+        jsonFile = kwargs.get('jsonFile', None)
+        if jsonFile is not None:
+            self.load_cyjs(jsonFile)
+        for link in self.get_links():
+            self.linkStores[link[0]+'-'+link[1]] = simpy.Store(self.env)
+            self.linkStores[link[1]+'-'+link[0]] = simpy.Store(self.env)
+        for node in self.get_nodes():
+            self.nodeStores[node[0]] = simpy.Store(self.env)
+            self.recievedQueues[node[0]] = simpy.Store(self.env)
+            self.transmitionQueues[node[0]] = simpy.Store(self.env)
+
 
     #===============================================================
     # Node
     # / These are node related functions
     #===============================================================
+
+
 
     def get_nodes(self):
         """
@@ -54,6 +79,10 @@ class Topology:
             list: a list of graph nodes
         """
         return self.G.nodes(data=True)
+
+    def get_neighbors(self, node):
+        return self.G.neighbors(node)
+
 
     def get_compute_nodes(self):
         """
@@ -141,7 +170,7 @@ class Topology:
         """
         return [(link[0],link[1], self.calculate_bitrate(link)) for link in self.get_links()]
 
-    def get_link_propagation_time(self, source, target):
+    def get_link_propagation_delay(self, source, target):
         """
         Args:
             source (str): source node id
@@ -160,9 +189,46 @@ class Topology:
         Returns:
             returns the delievery time of the specified packet on the specified link using source and destination target
         """
-        return self.get_link_propagation_time(source, target) + packet.calculate_transmition_time(source,target,self)
+        return self.get_link_propagation_delay(source, target) + packet.get_transmition_time(source,target,self)
+
+    def queue_packet_for_transmition(self,source, packet, time):
+        for node in self.get_nodes():
+            if node[0] == source:
+                yield self.env.timeout(time)
+                yield self.transmitionQueues[node[0]].put(packet)
+                
+    def process_recieved_packet(self, interval):
+        while True:
+            yield self.env.timeout(interval)
+            for node in self.get_nodes():
+                for neighbor in self.get_neighbors(node[0]):
+                    if len(self.linkStores[neighbor[0]+'-'+node[0]].items) > 0:
+                        yield self.env.timeout(self.get_link_propagation_delay(neighbor[0],node[0]))
+                        packet = yield self.linkStores[neighbor[0]+'-'+node[0]].get()
+                        if packet.destination == node[0]:
+                            print("Packet ", packet.name, " reached destination ", node[0], " at ", str(self.env.now))
+                        else:
+                            print("Packet ", packet.name, " recieved at", node[0], "...puting in queue at", str(self.env.now))
+                            self.transmitionQueues[node[0]].put(packet) 
+
+    def next_hop(self, node, target):
+        return self.routingTable[node][target][0][1]
 
 
+    def transimition_loop(self, interval):
+        while True:
+            yield self.env.timeout(interval)
+            for node in self.get_nodes():
+                for item in self.transmitionQueues[node[0]].items:
+                    if len(self.transmitionQueues[node[0]].items) > 0:
+                        packet = yield self.transmitionQueues[node[0]].get()
+                        next = self.next_hop(node[0],packet.destination)
+                        yield self.env.timeout(packet.get_transmition_time(node[0],next,self))
+                        print("Packet ", packet.name, " sent to ", next, " from ", node[0], " at ", str(self.env.now))
+                        self.linkStores[node[0]+'-'+next].put(packet)
+                        
+                                            
+    
     def send_packet(self, source, target, packet, env):
         """
         Simulates sending a packet
@@ -170,6 +236,27 @@ class Topology:
         time = self.get_packet_delivery_time(source, target, packet)
         yield env.timeout(time)
 
+
+    def create_routing_table(self):
+        dijkstra_paths = nx.all_pairs_dijkstra_path(G=self.G, weight=self.compute_distance_between_two_nodes)
+        allNodes = self.get_nodes()
+        for path in dijkstra_paths:
+            source = path[0]
+            for key in path[1].keys():
+                self.routingTable[source][key][0] = path[1][key]
+        for source in allNodes:
+            for target in allNodes:
+                all_paths = nx.all_simple_paths(G=self.G, source=source[0], target=target[0])
+                index = 1
+                tmp = []
+                for path in all_paths: 
+                    tmp.append(path)
+                tmp.sort(key = len)
+                for path in tmp:
+                    if path not in self.routingTable[source[0]][target[0]].values():
+                        self.routingTable[source[0]][target[0]][index] = path
+                        index += 1
+        
 
     def get_all_shortests_paths_routes(self):
         """
@@ -346,16 +433,21 @@ class Topology:
             dataDict[data[0]] = data[1]
         return dataDict
         
+    #===============================================================
+    # Links
+    # / These are link related functions
+    #===============================================================
 
 class Packet:
-    def __init__(self, source, destination, size, logger=None):
+    def __init__(self, name , source, destination, size, logger=None):
         self.size = size
         self.source = source
+        self.name = name
         self.destination = destination
         self.Time = time.time()
         self.logger = logger or logging.getLogger(__name__) 
 
-    def calculate_transmition_time(self, source, destination, topology):
+    def get_transmition_time(self, source, destination, topology):
         # return topology.get_link_bitrate(source, destination)
         return (self.size / topology.get_link_bitrate(source, destination))
            
