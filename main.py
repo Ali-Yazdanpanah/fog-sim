@@ -1,5 +1,5 @@
 from network import Topology as TP
-from network import Packet as pk
+from network import Request as rq
 from functools import partial, wraps
 # from Topology import return_weight
 
@@ -43,10 +43,39 @@ if __name__ == "__main__":
 
     # myTP.load_cyjs('./test_graph.json')
 
-    testPacket1 = pk('test 1', 'a','e', 2048)
-    testPacket2 = pk('test 2','b','f', 2048)
-    testPacket3 = pk('test 3','b','f', 2048)
-    # # print("Packet delivery time for packet from a to b is: " + str(myTP.get_packet_delivery_time('b','a',testPacket)) + " Seconds")
+
+
+    services = [
+    ('front',{
+        'deployments':{
+            'a':{ 'replicas' : 1 },
+            'b':{ 'replicas' : 1 },
+            'd':{ 'replicas' : 1 },
+            'e':{ 'replicas' : 1 },
+            'f':{ 'replicas' : 1 }
+        },
+        'RAM': 1024,
+        'CPU': 2,
+        'needs': 'back',
+
+    }),
+    ('back',{
+        'deployments':{
+            'a':{ 'replicas' : 0 },
+            'b':{ 'replicas' : 0 },
+            'd':{ 'replicas' : 0 },
+            'e':{ 'replicas' : 2 },
+            'f':{ 'replicas' : 2 }
+        },
+        'RAM': 2048,
+        'CPU': 4
+    })
+    ]
+
+    testRequest1 = rq('test 1', 'a', 'front', 'e' , 2048, 1000000, 5, 10240)
+    testRequest2 = rq('test 2', 'b', 'front', 'f' ,2048, 1000000, 5, 10240)
+    testRequest3 = rq('test 3', 'b', 'front', 'f' ,2048, 1000000, 5, 10240)
+    # # print("Packet delivery time for request from a to b is: " + str(myTP.get_request_delivery_time('b','a',testPacket)) + " Seconds")
     
     data = []
 
@@ -56,18 +85,20 @@ if __name__ == "__main__":
     trace(env, monitor)
 
     # myTP.save_network_png('./test.png')
-
-    env.process(myTP.queue_packet_for_transmition('a',testPacket1, 2))
-    env.process(myTP.queue_packet_for_transmition('b',testPacket2, 2))
-    env.process(myTP.queue_packet_for_transmition('b',testPacket3, 2))
-    # env.process(myTP.process_recieved_packets_loop())
+    env.process(myTP.create_service_placement_table(services))
+    # env.process(myTP.get_all_service_nodes('front'))
+    env.process(myTP.queue_request_for_transmition('a',testRequest1, 2))
+    env.process(myTP.queue_request_for_transmition('b',testRequest2, 2))
+    env.process(myTP.queue_request_for_transmition('b',testRequest3, 2))
+    # env.process(myTP.process_recieved_requests_loop())
     env.process(myTP.start())
+    
     env.run(until=100)
     # print(myTP.next_hop('a','d'))
 
     # for d in data:
     #     print(d)
-    # print("Propgation time of d to c is: " + str(myTP.get_packet_delivery_time('d','c')))
+    # print("Propgation time of d to c is: " + str(myTP.get_request_delivery_time('d','c')))
     # edges = myTP.get_edges()
     # print(myTP.get_links())
     # print(myTP.get_routers())

@@ -10,9 +10,9 @@
                     "value": "a",
                     "name": "a",
                     "MODE": "COMPUTE",
-                    "RAM": "10GB",
+                    "RAM": 10240,
                     "CPU": 20,
-                    "IPS": 1000,
+                    "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 300,
                     "Y": 100
@@ -21,9 +21,10 @@
             {
                 "data": {
                     "id": "zone_a",
-                    "value": "a",
-                    "name": "a",
+                    "value": "zone_a",
+                    "name": "zone_a",
                     "MODE": "ZONE",
+                    "IPS": 1000000,
                     "X": 0,
                     "Y": 0
                 }
@@ -34,10 +35,10 @@
                     "value": "b",
                     "name": "b",
                     "MODE": "COMPUTE",
-                    "RAM": "10GB",
+                    "RAM": 10240,
                     "CPU": 20,
                     "LOAD_TIME": 6,
-                    "IPS": 1000,
+                    "IPS": 1000000,
                     "X": 100,
                     "Y": 300
                 }
@@ -58,9 +59,9 @@
                     "value": "d",
                     "name": "d",
                     "MODE": "COMPUTE",
-                    "RAM": "10GB",
+                    "RAM": 10240,
                     "CPU": 20,
-                    "IPS": 1000,
+                    "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 500,
                     "Y": 500
@@ -72,9 +73,9 @@
                     "value": "e",
                     "name": "e",
                     "MODE": "COMPUTE",
-                    "RAM": "10GB",
+                    "RAM": 10240,
                     "CPU": 20,
-                    "IPS": 1000,
+                    "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 800,
                     "Y": 300
@@ -86,9 +87,9 @@
                     "value": "f",
                     "name": "f",
                     "MODE": "COMPUTE",
-                    "RAM": "10GB",
+                    "RAM": 10240,
                     "CPU": 20,
-                    "IPS": 1000,
+                    "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 1000,
                     "Y": 500

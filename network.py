@@ -19,6 +19,7 @@ from simpy.util import start_delayed
 
 
 from simpy.resources.store import Store
+from simpy.resources.store import FilterStore
 from networkx.readwrite import json_graph
 from collections import defaultdict
 from util import AutoVivification
@@ -26,6 +27,18 @@ from util import AutoVivification
 # Topology
 # / This class is responsible for modeling network topology
 #===============================================================
+
+
+class Service:
+    
+    def __init__(self, name, place, ram, cpu, needs):
+        self.name = name
+        self.place = place
+        self.ram = ram
+        self.cpu = cpu
+        self.needs = needs
+        self.serviceStore = simpy.FilterStore(self.env)
+    
 
 
 
@@ -51,11 +64,15 @@ class Topology:
         self.nodeAttributes = {}
         self.linkStores = {}
         self.nodeStores = {}
+        self.remainingMEM = {}
+        self.remainingCPU = {}
+        self.nodeServiceStores = {}
         self.transmitionQueues = {}
-        self.recievedQueues = {}
+        self.recievedRequests = {}
         self.routingTable = AutoVivification()
         self.logger = logger or logging.getLogger(__name__)
         self.env = env
+        self.placementTable = AutoVivification()
         jsonFile = kwargs.get('jsonFile', None)
         if jsonFile is not None:
             self.load_cyjs(jsonFile)
@@ -63,9 +80,51 @@ class Topology:
             self.linkStores[link[0]+'-'+link[1]] = simpy.Store(self.env)
             self.linkStores[link[1]+'-'+link[0]] = simpy.Store(self.env)
         for node in self.get_nodes():
-            self.nodeStores[node[0]] = simpy.Store(self.env)
-            self.recievedQueues[node[0]] = simpy.Store(self.env)
+            self.nodeStores[node[0]] = simpy.FilterStore(self.env)
+            self.recievedRequests[node[0]] = simpy.Store(self.env)
             self.transmitionQueues[node[0]] = simpy.Store(self.env)
+            if node[1]['MODE'] == 'COMPUTE':
+                self.nodeServiceStores[node[0]] = simpy.FilterStore(self.env)
+                self.remainingMEM[node[0]] = node[1]['RAM']
+                self.remainingCPU[node[0]] = node[1]['CPU']
+
+
+    #===============================================================
+    # service
+    # / These are service placement related functions
+    #===============================================================
+
+    def get_all_service_nodes(self, serviceName):
+        print(self.placementTable)
+        print({k: v for k, v in self.placementTable[serviceName]['deployments'] if v[1] > 0})
+        return {k: v for k, v in self.placementTable[serviceName]['deployments'] if v[1] > 0}
+        
+    def set_request_destination_node(self, nodeID, request):
+        current = self.get_node(nodeID)
+        for item in self.nodeServiceStores[current].items:
+            if item.name == request.destinationService:
+                return request.set_destination_node(nodeID)
+        else:
+            for node in self.get_neighbors(current):
+                pass
+
+    def create_service_placement_table(self, services):
+        for service in services:
+            self.placementTable[service[0]] = service[1] 
+        # print(self.placementTable)
+        print({k: v for k, v in self.placementTable['front']['deployments'] if v[1] > 0})
+        yield self.env.timeout(0)
+        # print(self.get_all_service_nodes['front'])
+        
+
+
+    def place_services(self,placementTable):
+        for node in self.get_nodes():
+            for service in placementTable.keys():
+                index = 0
+                for index in range(placementTable[service]['deployments'][node[0]]['replicas']):
+                    service = Service(node[0],placementTable[service]['RAM'],placementTable[service]['CPU'],placementTable[service]['needs'])
+                    self.nodeServiceStores[node[0]].put(services)
 
 
     #===============================================================
@@ -73,7 +132,14 @@ class Topology:
     # / These are node related functions
     #===============================================================
 
-
+    def get_node(self, id):
+        """
+        Returns:
+            node: get a graph node
+        """
+        for node in self.G.nodes(data=True):
+            if node[0] == id:
+                return node
 
     def get_nodes(self):
         """
@@ -82,8 +148,8 @@ class Topology:
         """
         return self.G.nodes(data=True)
 
-    def get_neighbors(self, node):
-        return self.G.neighbors(node)
+    def get_neighbors(self, nodeID):
+        return self.G.neighbors(nodeID)
 
 
     def get_compute_nodes(self):
@@ -182,84 +248,98 @@ class Topology:
         """
         return self.compute_distance_between_two_nodes(source, target, _t=None) / self.get_link_propagation_speed(source, target)
 
-    def get_packet_delivery_time(self, source, target, packet):
+    def get_request_delivery_time(self, source, target, request):
         """
         Args:
             source (str): source node id
             target (str): destination node id
-            packet (packet): packet object
+            request (request): request object
         Returns:
-            returns the delievery time of the specified packet on the specified link using source and destination target
+            returns the delievery time of the specified request on the specified link using source and destination target
         """
-        return self.get_link_propagation_delay(source, target) + packet.get_transmition_delay(source,target,self)
+        return self.get_link_propagation_delay(source, target) + request.get_transmition_delay(source,target,self)
 
-    def queue_packet_for_transmition(self,current, packet, time):
+    def queue_request_for_transmition(self,current, request, time):
         delay = time - self.env.now 
         # print(delay)
         if delay == 0:
-            yield self.put_packet_in_ts_queue(current[0], packet) 
+            yield self.put_request_in_ts_queue(current[0], request) 
         else:
-            yield start_delayed(self.env ,self.put_packet_in_ts_queue(current[0], packet), delay)
+            yield start_delayed(self.env ,self.put_request_in_ts_queue(current[0], request), delay)
 
     
-    def put_packet_in_ts_queue(self, current, packet):
-        print("Putting packet ", packet.name ," on transmition queue in node ", current, " at ", str(self.env.now))
+    def put_request_in_ts_queue(self, current, request):
+        print("Putting request ", request.name ," on transmition queue in node ", current, " at ", str(self.env.now))
         for node in self.get_nodes():
             if node[0] == current:
-                yield self.transmitionQueues[node[0]].put(packet)
+                yield self.transmitionQueues[node[0]].put(request)
 
 
-    def recieve_packet(self, sender, reciever):
+    def start_request_process(self, request, nodeID):
+        node = self.get_node(nodeID)
+        requestExecutionTime = (request.instructions / (node[1]['IPS'])*1.000)
+        self.remainingCPU[nodeID] = self.remainingCPU[nodeID] - request.cpu
+        self.remainingMEM[nodeID] = self.remainingMEM[nodeID] - request.ram
+        start_delayed(self.env ,self.finish_request(request=request, nodeID=nodeID), requestExecutionTime)
+
+    def finish_request(self, request, nodeID):
+        print("request ", request.name ," finished on node: ", nodeID, " at ", self.env.now)
+        self.remainingCPU[nodeID] = self.remainingCPU[nodeID] + request.cpu
+        self.remainingMEM[nodeID] = self.remainingMEM[nodeID] + request.ram
+        yield self.nodeStores[nodeID].get(filter=lambda request: True)
+
+    def recieve_request(self, sender, reciever):
         # yield self.env.timeout(delay)
-        packet = yield self.linkStores[sender+'-'+reciever].get()    
-        if packet.destination == reciever:
-            print("Packet ", packet.name, " reached destination ", reciever, " at ", str(self.env.now))
-            yield self.env.timeout(0)
+        request = yield self.linkStores[sender+'-'+reciever].get()    
+        if request.destinationNode == reciever:
+            print("Packet ", request.name, " reached destination ", reciever, " at ", str(self.env.now))
+            self.start_request_process(request, reciever)   
+            yield self.nodeStores[reciever].put(request)
         else:
-            print("Packet ", packet.name, " recieved at", reciever, "...puting in queue at", str(self.env.now))
-            yield self.transmitionQueues[reciever].put(packet) 
+            print("Packet ", request.name, " recieved at", reciever, "...puting in queue at", str(self.env.now))
+            yield self.transmitionQueues[reciever].put(request) 
 
-    def transmit_packet(self, packet, sender, reciever):
+    def transmit_request(self, request, sender, reciever):
         # yield self.env.timeout(delay)
-        print("Packet ", packet.name, " transmited to ", reciever, " from ", sender, " at ", str(self.env.now))
-        yield self.linkStores[sender+'-'+reciever].put(packet)
+        print("Packet ", request.name, " transmited to ", reciever, " from ", sender, " at ", str(self.env.now))
+        yield self.linkStores[sender+'-'+reciever].put(request)
         
 
     def transimition_loop(self):
         while True:
             for current in self.get_nodes():
                 if len(self.transmitionQueues[current[0]].items) > 0:
-                    packet = yield self.transmitionQueues[current[0]].get()
-                    next = self.next_hop(current[0],packet.destination)
-                    delay = packet.get_transmition_delay(current[0],next,self)
+                    request = yield self.transmitionQueues[current[0]].get()
+                    next = self.next_hop(current[0],request.destinationNode)
+                    delay = request.get_transmition_delay(current[0],next,self)
                     print("link ", neighbor[0], "-", current[0], " transmition delay is ", delay)
-                    start_delayed(self.env ,self.transmit_packet(packet=packet, sender=current[0], reciever=next), delay)
+                    start_delayed(self.env ,self.transmit_request(request=request, sender=current[0], reciever=next), delay)
 
 
-    def process_recieved_packets_loop(self):
+    def process_recieved_requests_loop(self):
         while True:
             for current in self.get_nodes():
                 for neighbor in self.get_neighbors(current[0]):
                     if len(self.linkStores[neighbor[0]+'-'+current[0]].items) > 0:
                         delay = self.get_link_propagation_delay(neighbor[0],current[0])
                         print("link ", neighbor[0], "-", current[0], " propagation delay is ", delay)
-                        start_delayed(self.env ,self.recieve_packet(sender=neighbor[0],reciever=current[0]), delay)
+                        start_delayed(self.env ,self.recieve_request(sender=neighbor[0],reciever=current[0]), delay)
             
 
     def start(self):
         while True:
             for current in self.get_nodes():
                 if len(self.transmitionQueues[current[0]].items) > 0:
-                    packet = yield self.transmitionQueues[current[0]].get()
-                    next = self.next_hop(current[0],packet.destination)
-                    delay = packet.get_transmition_delay(current[0],next,self)
+                    request = yield self.transmitionQueues[current[0]].get()
+                    next = self.next_hop(current[0],request.destinationNode)
+                    delay = request.get_transmition_delay(current[0],next,self)
                     # print("link ", neighbor[0], "-", current[0], " transmition delay is ", delay)
-                    start_delayed(self.env ,self.transmit_packet(packet=packet, sender=current[0], reciever=next), delay)
+                    start_delayed(self.env ,self.transmit_request(request=request, sender=current[0], reciever=next), delay)
                 for neighbor in self.get_neighbors(current[0]):
                     if len(self.linkStores[neighbor[0]+'-'+current[0]].items) > 0:
                         delay = self.get_link_propagation_delay(neighbor[0],current[0])
                         # print("link ", neighbor[0], "-", current[0], " propagation delay is ", delay)
-                        yield start_delayed(self.env ,self.recieve_packet(sender=neighbor[0],reciever=current[0]), delay)
+                        yield start_delayed(self.env ,self.recieve_request(sender=neighbor[0],reciever=current[0]), delay)
             self.env.step()
 
     def next_hop(self, current, target):
@@ -268,11 +348,11 @@ class Topology:
 
                                             
     
-    # def send_packet(self, source, target, packet, env):
+    # def send_request(self, source, target, request, env):
     #     """
-    #     Simulates sending a packet
+    #     Simulates sending a request
     #     """
-    #     time = self.get_packet_delivery_time(source, target, packet)
+    #     time = self.get_request_delivery_time(source, target, request)
     #     yield env.timeout(time)
 
 
@@ -477,16 +557,22 @@ class Topology:
     # / These are link related functions
     #===============================================================
 
-class Packet:
-    def __init__(self, name , source, destination, size, logger=None):
+class Request:
+    def __init__(self, name , source, destinationService, destinationNode, size, instructions, ram, cpu, logger=None):
         self.size = size
         self.source = source
         self.name = name
-        self.destination = destination
+        self.destinationNode = destinationNode
+        self.destinationService = destinationService
+        self.ram = ram
+        self.cpu = cpu
+        self.instructions = instructions
         self.Time = time.time()
         self.logger = logger or logging.getLogger(__name__) 
 
     def get_transmition_delay(self, source, destination, topology):
         # return topology.get_link_bitrate(source, destination)
         return (self.size / topology.get_link_bitrate(source, destination))
-           
+    
+    def set_destination_node(self, destinationNode):
+        self.destinationNode = destinationNode
