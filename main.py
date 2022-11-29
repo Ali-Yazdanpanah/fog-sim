@@ -56,26 +56,28 @@ if __name__ == "__main__":
         },
         'RAM': 1024,
         'CPU': 2,
-        'needs': 'back',
+        'needs': ['back'],
 
     }),
     ('back',{
         'deployments':{
             'a':{ 'replicas' : 0 },
-            'b':{ 'replicas' : 0 },
+            'b':{ 'replicas' : 1 },
             'd':{ 'replicas' : 0 },
-            'e':{ 'replicas' : 2 },
-            'f':{ 'replicas' : 2 }
+            'e':{ 'replicas' : 1 },
+            'f':{ 'replicas' : 0 }
         },
         'RAM': 2048,
-        'CPU': 4
+        'CPU': 10,
+        'needs': []
     })
     ]
 
-    testRequest1 = rq('test 1', 'a', 'front', 'e' , 2048, 1000000, 5, 10240)
-    testRequest2 = rq('test 2', 'b', 'front', 'f' ,2048, 1000000, 5, 10240)
-    testRequest3 = rq('test 3', 'b', 'front', 'f' ,2048, 1000000, 5, 10240)
+    testRequest1 = rq(name='test 1', source='zone_a', destinationService='back' ,size=2048, instructions=1000000, cpu=5, ram=1024)
+    testRequest2 = rq(name='test 2', source='zone_a', destinationService='back' ,size=2048, instructions=1000000, cpu=6, ram=1024)
+    testRequest3 = rq(name='test 3', source='b', destinationService='back' ,size=2048, instructions=1000000, cpu=5, ram=1024)
     # # print("Packet delivery time for request from a to b is: " + str(myTP.get_request_delivery_time('b','a',testPacket)) + " Seconds")
+
     
     data = []
 
@@ -84,16 +86,19 @@ if __name__ == "__main__":
 
     trace(env, monitor)
 
-    # myTP.save_network_png('./test.png')
+    myTP.save_network_png('./test.png')
     env.process(myTP.create_service_placement_table(services))
+    env.process(myTP.place_services())
     # env.process(myTP.get_all_service_nodes('front'))
-    env.process(myTP.queue_request_for_transmition('a',testRequest1, 2))
-    env.process(myTP.queue_request_for_transmition('b',testRequest2, 2))
-    env.process(myTP.queue_request_for_transmition('b',testRequest3, 2))
+    env.process(myTP.queue_request_for_transmition('zone_a',testRequest1, 2))
+    env.process(myTP.queue_request_for_transmition('zone_a',testRequest2, 2))
+    # env.process(myTP.queue_request_for_transmition('zone_a',testRequest3, 2))
+    # env.process(myTP.choose_request_destination('a',testRequest3))
+    # env.process(myTP.create_service_placement_table(services))
     # env.process(myTP.process_recieved_requests_loop())
     env.process(myTP.start())
     
-    env.run(until=100)
+    env.run(until=10)
     # print(myTP.next_hop('a','d'))
 
     # for d in data:

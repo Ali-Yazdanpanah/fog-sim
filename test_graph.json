@@ -11,7 +11,7 @@
                     "name": "a",
                     "MODE": "COMPUTE",
                     "RAM": 10240,
-                    "CPU": 20,
+                    "CPU": 20.0,
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 300,
@@ -24,9 +24,8 @@
                     "value": "zone_a",
                     "name": "zone_a",
                     "MODE": "ZONE",
-                    "IPS": 1000000,
-                    "X": 0,
-                    "Y": 0
+                    "X": 1000,
+                    "Y": 1000
                 }
             },
             {
@@ -36,7 +35,7 @@
                     "name": "b",
                     "MODE": "COMPUTE",
                     "RAM": 10240,
-                    "CPU": 20,
+                    "CPU": 20.0,
                     "LOAD_TIME": 6,
                     "IPS": 1000000,
                     "X": 100,
@@ -60,7 +59,7 @@
                     "name": "d",
                     "MODE": "COMPUTE",
                     "RAM": 10240,
-                    "CPU": 20,
+                    "CPU": 20.0,
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 500,
@@ -74,7 +73,7 @@
                     "name": "e",
                     "MODE": "COMPUTE",
                     "RAM": 10240,
-                    "CPU": 20,
+                    "CPU": 20.0,
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 800,
@@ -88,7 +87,7 @@
                     "name": "f",
                     "MODE": "COMPUTE",
                     "RAM": 10240,
-                    "CPU": 20,
+                    "CPU": 20.0,
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 1000,
@@ -99,7 +98,7 @@
         "edges": [
             {
                 "data": {
-                    "bandwidth": 20000,
+                    "bandwidth": 20.0000,
                     "source": "a",
                     "target": "b",
                     "SNR": 30,
@@ -109,7 +108,7 @@
             },
             {
                 "data": {
-                    "bandwidth": 2000,
+                    "bandwidth": 2500,
                     "source": "a",
                     "target": "c",
                     "SNR": 30,
@@ -172,6 +171,16 @@
                     "bandwidth": 2500,
                     "source": "d",
                     "target": "b",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "source": "zone_a",
+                    "target": "a",
                     "SNR": 30,
                     "PS": 300000000,
                     "PL": 0

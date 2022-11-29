@@ -31,17 +31,16 @@ from util import AutoVivification
 
 class Service:
     
-    def __init__(self, name, place, ram, cpu, needs):
+    def __init__(self, id ,name, place, ram, cpu, needs, topology):
+        self.id = id
         self.name = name
         self.place = place
         self.ram = ram
         self.cpu = cpu
         self.needs = needs
-        self.serviceStore = simpy.FilterStore(self.env)
-    
-
-
-
+        self.usedCPU = 0
+        self.usedMEM = 0
+        self.serviceStore = simpy.FilterStore(topology.env)
 
 
 class Topology:
@@ -60,7 +59,6 @@ class Topology:
     def __init__(self, env, logger=None, *args, **kwargs):
         # G is a nx.networkx graph
         self.G = None
-        self.until = 0
         self.nodeAttributes = {}
         self.linkStores = {}
         self.nodeStores = {}
@@ -83,10 +81,42 @@ class Topology:
             self.nodeStores[node[0]] = simpy.FilterStore(self.env)
             self.recievedRequests[node[0]] = simpy.Store(self.env)
             self.transmitionQueues[node[0]] = simpy.Store(self.env)
+            # print(node[1])
             if node[1]['MODE'] == 'COMPUTE':
                 self.nodeServiceStores[node[0]] = simpy.FilterStore(self.env)
                 self.remainingMEM[node[0]] = node[1]['RAM']
                 self.remainingCPU[node[0]] = node[1]['CPU']
+
+    #===============================================================
+    # service
+    # / These are service placement related functions
+    #===============================================================
+    def get_cpu_utilization_rate(self, nodeID):
+        node = self.get_node(nodeID)
+        totalUsed = 0
+        for service in node.nodeStores.items:
+            if len(service.serviceStore.items) > 0:
+                for request in service.serviceStore:
+                    totalUsed += request.cpu
+        return totalUsed
+    
+    def get_all_nodes_cpu_utilization_rate(self):
+        return {node[0] : self.get_cpu_utilization_rate(node) for node in self.get_nodes()}
+
+
+    def get_mem_utilization_rate(self, nodeID):
+        node = self.get_node(nodeID)
+        totalUsed = 0
+        for service in node.nodeStores.items:
+            if len(service.serviceStore.items) > 0:
+                for request in service.serviceStore:
+                    totalUsed += request.ram
+        return totalUsed
+    
+    def get_all_nodes_mem_utilization_rate(self):
+        return { node[0] : self.get_mem_utilization_rate(node) for node in self.get_nodes()}
+     
+              
 
 
     #===============================================================
@@ -95,42 +125,59 @@ class Topology:
     #===============================================================
 
     def get_all_service_nodes(self, serviceName):
-        print(self.placementTable)
-        print({k: v for k, v in self.placementTable[serviceName]['deployments'] if v[1] > 0})
+        # print(self.placementTable)
+        # print({k: v for k, v in self.placementTable[serviceName]['deployments'] if v[1] > 0})
         return {k: v for k, v in self.placementTable[serviceName]['deployments'] if v[1] > 0}
-        
-    def set_request_destination_node(self, nodeID, request):
-        current = self.get_node(nodeID)
-        for item in self.nodeServiceStores[current].items:
-            if item.name == request.destinationService:
-                return request.set_destination_node(nodeID)
-        else:
-            for node in self.get_neighbors(current):
-                pass
+
+
+    # def set_request_destination_node(self, nodeID, request):
+    #     current = self.get_node(nodeID)
+    #     for item in self.nodeServiceStores[current].items:
+    #         if item.name == request.destinationService:
+    #             return request.set_destination_node(nodeID)
+    #     else:
+    #         for node in self.get_all_service_nodes(current):
+    #             pass
+
 
     def create_service_placement_table(self, services):
         for service in services:
             self.placementTable[service[0]] = service[1] 
-        # print(self.placementTable)
-        print({k: v for k, v in self.placementTable['front']['deployments'] if v[1] > 0})
         yield self.env.timeout(0)
-        # print(self.get_all_service_nodes['front'])
         
+    def get_nodes_with_service(self,serviceName):
+        return [v for v in self.placementTable[serviceName]['deployments'] if self.placementTable[serviceName]['deployments'][v]['replicas'] > 0 ]
 
+    def choose_request_destination(self, current, request):
+        possibleDestination = [(node,nx.path_weight(G=self.G, path=self.routingTable[current][node][0], weight='bandwidth')) for node in self.get_nodes_with_service(request.destinationService)]
+        min = 0
+        next = 0
+        for dest in possibleDestination:
+            if dest[1] > min:
+                min = dest[1]
+                next = dest[0]
+        request.destinationNode = next
+        print(request.name,"destination node unknown, setting to ",request.destinationNode, " at node ", current, " at ", self.env.now)
+        # yield self.env.timeout(0)
+        # return next
+            
 
-    def place_services(self,placementTable):
-        for node in self.get_nodes():
-            for service in placementTable.keys():
-                index = 0
-                for index in range(placementTable[service]['deployments'][node[0]]['replicas']):
-                    service = Service(node[0],placementTable[service]['RAM'],placementTable[service]['CPU'],placementTable[service]['needs'])
-                    self.nodeServiceStores[node[0]].put(services)
+    def place_services(self):
+        for node in self.get_compute_nodes():
+            for service in self.placementTable.keys():
+                for index in range(self.placementTable[service]['deployments'][node[0]]['replicas']):
+                    newService = Service(index,service,node[0],self.placementTable[service]['RAM'],self.placementTable[service]['CPU'],self.placementTable[service]['needs'], self)
+                    print(newService.name, newService.id , " placed on node ", node[0])
+                    yield self.nodeStores[node[0]].put(newService)
 
 
     #===============================================================
     # Node
     # / These are node related functions
     #===============================================================
+
+    def get_nod_id(self, node):
+        return node[0]
 
     def get_node(self, id):
         """
@@ -140,6 +187,12 @@ class Topology:
         for node in self.G.nodes(data=True):
             if node[0] == id:
                 return node
+    
+    def get_routing_nodes(self):
+        return [node for node in self.G.nodes(data=True) if node[1]['MODE'] != 'ZONE']
+
+    def get_zones(self):
+        return [node for node in self.G.nodes(data=True) if node[1]['MODE'] == 'ZONE']
 
     def get_nodes(self):
         """
@@ -157,7 +210,7 @@ class Topology:
         Returns:
             list: a list of compute nodes
         """
-        return [node for node in self.get_nodes(data=True) if node[1]['MODE'] == 'COMPUTE']
+        return [node for node in self.get_nodes() if node[1]['MODE'] == 'COMPUTE']
 
     def get_routers(self):
         """
@@ -263,11 +316,12 @@ class Topology:
         delay = time - self.env.now 
         # print(delay)
         if delay == 0:
-            yield self.put_request_in_ts_queue(current[0], request) 
+            yield self.put_request_in_ts_queue(current, request) 
         else:
-            yield start_delayed(self.env ,self.put_request_in_ts_queue(current[0], request), delay)
+            yield start_delayed(self.env ,self.put_request_in_ts_queue(current, request), delay)
 
     
+
     def put_request_in_ts_queue(self, current, request):
         print("Putting request ", request.name ," on transmition queue in node ", current, " at ", str(self.env.now))
         for node in self.get_nodes():
@@ -275,26 +329,51 @@ class Topology:
                 yield self.transmitionQueues[node[0]].put(request)
 
 
-    def start_request_process(self, request, nodeID):
+    def start_request_process(self, request, nodeID, serviceID, serviceName):
         node = self.get_node(nodeID)
         requestExecutionTime = (request.instructions / (node[1]['IPS'])*1.000)
         self.remainingCPU[nodeID] = self.remainingCPU[nodeID] - request.cpu
         self.remainingMEM[nodeID] = self.remainingMEM[nodeID] - request.ram
-        start_delayed(self.env ,self.finish_request(request=request, nodeID=nodeID), requestExecutionTime)
+        start_delayed(self.env ,self.finish_request(request=request, nodeID=nodeID, serviceID=serviceID, serviceName=serviceName), requestExecutionTime)
 
-    def finish_request(self, request, nodeID):
-        print("request ", request.name ," finished on node: ", nodeID, " at ", self.env.now)
+    def finish_request(self, request, nodeID, serviceID, serviceName):
+        # print("request ", request.name ," finished on node: ", nodeID, " on service: ", serviceName, serviceID , " at ", self.env.now)
         self.remainingCPU[nodeID] = self.remainingCPU[nodeID] + request.cpu
         self.remainingMEM[nodeID] = self.remainingMEM[nodeID] + request.ram
-        yield self.nodeStores[nodeID].get(filter=lambda request: True)
+        for item in self.nodeStores[nodeID].items:
+            if item.name == request.destinationService and item.id == serviceID:
+                print("Computation of packet ", request.name, " Done in service ", item.name, item.id, " in ", request.destinationNode , " at ", str(self.env.now))
+                item.usedCPU -= request.cpu
+                item.usedMEM -= request.ram
+                item.cpu += request.cpu
+                item.ram += request.ram
+                yield item.serviceStore.get(filter=lambda request: True)
+                break
 
     def recieve_request(self, sender, reciever):
         # yield self.env.timeout(delay)
-        request = yield self.linkStores[sender+'-'+reciever].get()    
+        request = yield self.linkStores[sender+'-'+reciever].get()  
+        # print(request.name)  
         if request.destinationNode == reciever:
-            print("Packet ", request.name, " reached destination ", reciever, " at ", str(self.env.now))
-            self.start_request_process(request, reciever)   
-            yield self.nodeStores[reciever].put(request)
+            print("Packet ", request.name, " reached destination ", reciever, " at ", str(self.env.now))  
+            for item in self.nodeStores[reciever].items:
+                if item.name == request.destinationService:
+                    # print(request.cpu)
+                    if item.cpu >= request.cpu and item.ram >= request.ram:
+                        print("Computation of packet ", request.name, " started in service ", item.name, item.id, " in ", request.destinationNode , " at ", str(self.env.now))
+                        item.usedCPU += request.cpu
+                        item.usedMEM += request.ram
+                        item.cpu -= request.cpu
+                        item.ram -= request.ram
+                        self.start_request_process(request=request, nodeID=reciever, serviceID=item.id, serviceName=item.name)
+                        yield item.serviceStore.put(request)
+                        break
+            else:
+                request.destinationNode = 'NA'
+                print("No resource for request ", request.name, " on node", reciever, "...puting in queue at", str(self.env.now))
+                yield self.transmitionQueues[reciever].put(request)
+
+            
         else:
             print("Packet ", request.name, " recieved at", reciever, "...puting in queue at", str(self.env.now))
             yield self.transmitionQueues[reciever].put(request) 
@@ -305,41 +384,44 @@ class Topology:
         yield self.linkStores[sender+'-'+reciever].put(request)
         
 
-    def transimition_loop(self):
-        while True:
-            for current in self.get_nodes():
-                if len(self.transmitionQueues[current[0]].items) > 0:
-                    request = yield self.transmitionQueues[current[0]].get()
-                    next = self.next_hop(current[0],request.destinationNode)
-                    delay = request.get_transmition_delay(current[0],next,self)
-                    print("link ", neighbor[0], "-", current[0], " transmition delay is ", delay)
-                    start_delayed(self.env ,self.transmit_request(request=request, sender=current[0], reciever=next), delay)
-
-
-    def process_recieved_requests_loop(self):
-        while True:
-            for current in self.get_nodes():
-                for neighbor in self.get_neighbors(current[0]):
-                    if len(self.linkStores[neighbor[0]+'-'+current[0]].items) > 0:
-                        delay = self.get_link_propagation_delay(neighbor[0],current[0])
-                        print("link ", neighbor[0], "-", current[0], " propagation delay is ", delay)
-                        start_delayed(self.env ,self.recieve_request(sender=neighbor[0],reciever=current[0]), delay)
-            
 
     def start(self):
         while True:
             for current in self.get_nodes():
-                if len(self.transmitionQueues[current[0]].items) > 0:
-                    request = yield self.transmitionQueues[current[0]].get()
-                    next = self.next_hop(current[0],request.destinationNode)
-                    delay = request.get_transmition_delay(current[0],next,self)
-                    # print("link ", neighbor[0], "-", current[0], " transmition delay is ", delay)
-                    start_delayed(self.env ,self.transmit_request(request=request, sender=current[0], reciever=next), delay)
+                if current[1]["MODE"] == "ROUTER":
+                    if len(self.transmitionQueues[current[0]].items) > 0:
+                        request = yield self.transmitionQueues[current[0]].get()
+                        if request.destinationNode == 'NA':
+                            self.choose_request_destination(current[0],request)
+                        next = self.next_hop(current[0],request.destinationNode)
+                        # print(next)
+                        delay = request.get_transmition_delay(current[0],next,self)
+                        # print("link ", neighbor[0], "-", current[0], " transmition delay is ", delay)
+                        start_delayed(self.env ,self.transmit_request(request=request, sender=current[0], reciever=next), delay)
+                if current[1]["MODE"] == "COMPUTE":
+                    if len(self.transmitionQueues[current[0]].items) > 0:
+                        request = yield self.transmitionQueues[current[0]].get()
+                        if request.destinationNode == 'NA':
+                            self.choose_request_destination(current[0],request)
+                        next = self.next_hop(current[0],request.destinationNode)
+                        # print(next)
+                        delay = request.get_transmition_delay(current[0],next,self)
+                        # print("link ", neighbor[0], "-", current[0], " transmition delay is ", delay)
+                        start_delayed(self.env ,self.transmit_request(request=request, sender=current[0], reciever=next), delay)
+                if current[1]["MODE"] == "ZONE":
+                    if len(self.transmitionQueues[current[0]].items) > 0:
+                        request = yield self.transmitionQueues[current[0]].get()
+                        if request.destinationNode == 'NA':
+                            self.choose_request_destination(current[0],request)
+                        next = self.next_hop(current[0],request.destinationNode)
+                        self.send_request(request=request, sender=current[0], reciever=next)   
                 for neighbor in self.get_neighbors(current[0]):
-                    if len(self.linkStores[neighbor[0]+'-'+current[0]].items) > 0:
-                        delay = self.get_link_propagation_delay(neighbor[0],current[0])
+                    if len(self.linkStores[neighbor+'-'+current[0]].items) > 0:
+                        delay = self.get_link_propagation_delay(neighbor,current[0])
                         # print("link ", neighbor[0], "-", current[0], " propagation delay is ", delay)
-                        yield start_delayed(self.env ,self.recieve_request(sender=neighbor[0],reciever=current[0]), delay)
+                        yield start_delayed(self.env ,self.recieve_request(sender=neighbor,reciever=current[0]), delay)
+    
+
             self.env.step()
 
     def next_hop(self, current, target):
@@ -348,13 +430,12 @@ class Topology:
 
                                             
     
-    # def send_request(self, source, target, request, env):
-    #     """
-    #     Simulates sending a request
-    #     """
-    #     time = self.get_request_delivery_time(source, target, request)
-    #     yield env.timeout(time)
-
+    def send_request(self, sender, reciever, request):
+        """
+        Simulates sending a request form a zone
+        """
+        print("Packet ", request.name, " Sent to ", reciever, " from ", sender, " at ", str(self.env.now))
+        self.linkStores[sender+'-'+reciever].put(request)
 
     def create_routing_table(self):
         dijkstra_paths = nx.all_pairs_dijkstra_path(G=self.G, weight=self.compute_distance_between_two_nodes)
@@ -558,11 +639,11 @@ class Topology:
     #===============================================================
 
 class Request:
-    def __init__(self, name , source, destinationService, destinationNode, size, instructions, ram, cpu, logger=None):
+    def __init__(self, name , source, destinationService, size, instructions, cpu, ram, logger=None):
         self.size = size
         self.source = source
         self.name = name
-        self.destinationNode = destinationNode
+        self.destinationNode = 'NA'
         self.destinationService = destinationService
         self.ram = ram
         self.cpu = cpu
@@ -572,6 +653,7 @@ class Request:
 
     def get_transmition_delay(self, source, destination, topology):
         # return topology.get_link_bitrate(source, destination)
+        # print(source, destination)
         return (self.size / topology.get_link_bitrate(source, destination))
     
     def set_destination_node(self, destinationNode):
