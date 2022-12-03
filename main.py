@@ -58,16 +58,16 @@ if __name__ == "__main__":
         },
         'RAM': 5000,
         'CPU': 2,
-        'needs': ['back'],
+        'needs': ['back','back2'],
 
     }),
     ('back',{
         'deployments':{
-            'a':{ 'replicas' : 0 },
+            'a':{ 'replicas' : 1 },
             'b':{ 'replicas' : 1 },
-            'd':{ 'replicas' : 1 },
-            'e':{ 'replicas' : 1 },
-            'f':{ 'replicas' : 2 },
+            'd':{ 'replicas' : 2 },
+            'e':{ 'replicas' : 3 },
+            'f':{ 'replicas' : 1 },
             'CLOUD': { 'replicas' : 40}
         },
         'RAM': 5000,
@@ -76,11 +76,11 @@ if __name__ == "__main__":
     }),
     ('back2',{
         'deployments':{
-            'a':{ 'replicas' : 6 },
+            'a':{ 'replicas' : 0 },
             'b':{ 'replicas' : 0 },
-            'd':{ 'replicas' : 2 },
-            'e':{ 'replicas' : 1 },
-            'f':{ 'replicas' : 2 },
+            'd':{ 'replicas' : 1 },
+            'e':{ 'replicas' : 0 },
+            'f':{ 'replicas' : 1 },
             'CLOUD': { 'replicas' : 40}
         },
         'RAM': 8000,
@@ -105,10 +105,10 @@ if __name__ == "__main__":
     env.process(myTP.place_services())
     # env.process(myTP.get_all_service_nodes('front'))
     requests = []
-    for i in range(1):
+    for i in range(2000):
             testRequest = rq(name='test '+str(i), source='zone_a', destinationService='front' ,size=24, instructions=100, cpu=0.02, ram=32, sub=False, issuedBy='zone_a', masterService = 'none', masterRequest='none', env=env)
             requests += [testRequest]
-            env.process(myTP.queue_request_for_transmition('zone_a',testRequest, 0.2))
+            env.process(myTP.queue_request_for_transmition('zone_a',testRequest, 0.0002 + i/50))
 
 
     # env.process(myTP.queue_request_for_transmition('zone_a',testRequest3, 2))
