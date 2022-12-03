@@ -20,6 +20,20 @@
             },
             {
                 "data": {
+                    "id": "CLOUD",
+                    "value": "CLOUD",
+                    "name": "CLOUD",
+                    "MODE": "CLOUD",
+                    "RAM": 999999999999,
+                    "CPU": 2000000,
+                    "IPS": 10000000,
+                    "LOAD_TIME": 6,
+                    "X": 3000,
+                    "Y": 3000
+                }
+            },
+            {
+                "data": {
                     "id": "zone_a",
                     "value": "zone_a",
                     "name": "zone_a",

@@ -41,7 +41,7 @@ if __name__ == "__main__":
     myTP.create_routing_table()
     # print(myTP.routingTable)
 
-    # myTP.load_cyjs('./test_graph.json')
+    myTP.load_cyjs('./test_graph.json')
 
 
 
@@ -52,7 +52,8 @@ if __name__ == "__main__":
             'b':{ 'replicas' : 1 },
             'd':{ 'replicas' : 1 },
             'e':{ 'replicas' : 1 },
-            'f':{ 'replicas' : 1 }
+            'f':{ 'replicas' : 1 },
+            'CLOUD': { 'replicas' : 40}
         },
         'RAM': 1024,
         'CPU': 2,
@@ -61,11 +62,12 @@ if __name__ == "__main__":
     }),
     ('back',{
         'deployments':{
-            'a':{ 'replicas' : 0 },
+            'a':{ 'replicas' : 2 },
             'b':{ 'replicas' : 1 },
-            'd':{ 'replicas' : 0 },
+            'd':{ 'replicas' : 1 },
             'e':{ 'replicas' : 1 },
-            'f':{ 'replicas' : 0 }
+            'f':{ 'replicas' : 2 },
+            'CLOUD': { 'replicas' : 40}
         },
         'RAM': 2048,
         'CPU': 10,
@@ -73,10 +75,7 @@ if __name__ == "__main__":
     })
     ]
 
-    testRequest1 = rq(name='test 1', source='zone_a', destinationService='back' ,size=2048, instructions=1000000, cpu=5, ram=1024)
-    testRequest2 = rq(name='test 2', source='zone_a', destinationService='back' ,size=2048, instructions=1000000, cpu=6, ram=1024)
-    testRequest3 = rq(name='test 3', source='b', destinationService='back' ,size=2048, instructions=1000000, cpu=5, ram=1024)
-    # # print("Packet delivery time for request from a to b is: " + str(myTP.get_request_delivery_time('b','a',testPacket)) + " Seconds")
+ # # print("Packet delivery time for request from a to b is: " + str(myTP.get_request_delivery_time('b','a',testPacket)) + " Seconds")
 
     
     data = []
@@ -87,18 +86,21 @@ if __name__ == "__main__":
     trace(env, monitor)
 
     myTP.save_network_png('./test.png')
+    env.process(myTP.create_service_table(services))
     env.process(myTP.create_service_placement_table(services))
     env.process(myTP.place_services())
     # env.process(myTP.get_all_service_nodes('front'))
-    env.process(myTP.queue_request_for_transmition('zone_a',testRequest1, 2))
-    env.process(myTP.queue_request_for_transmition('zone_a',testRequest2, 2))
+    for i in range(1):
+            testRequest = rq(name='test '+str(i), source='zone_a', destinationService='front' ,size=32, instructions=100000, cpu=2, ram=512, sub=False, issuedBy='zone_a', masterService = 'none', masterRequest='none')
+            env.process(myTP.queue_request_for_transmition('zone_a',testRequest, (i+1)/10))
+
     # env.process(myTP.queue_request_for_transmition('zone_a',testRequest3, 2))
     # env.process(myTP.choose_request_destination('a',testRequest3))
     # env.process(myTP.create_service_placement_table(services))
     # env.process(myTP.process_recieved_requests_loop())
     env.process(myTP.start())
     
-    env.run(until=10)
+    env.run(until=1000)
     # print(myTP.next_hop('a','d'))
 
     # for d in data:
