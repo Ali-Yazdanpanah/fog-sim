@@ -6,11 +6,25 @@
         "nodes": [
             {
                 "data": {
+                    "id": "CLOUD",
+                    "value": "CLOUD",
+                    "name": "CLOUD",
+                    "MODE": "CLOUD",
+                    "RAM": 1000000000,
+                    "CPU": 2000000.0,
+                    "IPS": 9000000,
+                    "LOAD_TIME": 6,
+                    "X": 1500,
+                    "Y": 1500
+                }
+            },
+            {
+                "data": {
                     "id": "a",
                     "value": "a",
                     "name": "a",
                     "MODE": "COMPUTE",
-                    "RAM": 10240,
+                    "RAM": 100000,
                     "CPU": 20.0,
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
@@ -20,26 +34,12 @@
             },
             {
                 "data": {
-                    "id": "CLOUD",
-                    "value": "CLOUD",
-                    "name": "CLOUD",
-                    "MODE": "CLOUD",
-                    "RAM": 999999999999,
-                    "CPU": 2000000,
-                    "IPS": 10000000,
-                    "LOAD_TIME": 6,
-                    "X": 3000,
-                    "Y": 3000
-                }
-            },
-            {
-                "data": {
                     "id": "zone_a",
                     "value": "zone_a",
                     "name": "zone_a",
                     "MODE": "ZONE",
-                    "X": 1000,
-                    "Y": 1000
+                    "X": 0,
+                    "Y": 0
                 }
             },
             {
@@ -48,7 +48,7 @@
                     "value": "b",
                     "name": "b",
                     "MODE": "COMPUTE",
-                    "RAM": 10240,
+                    "RAM": 100000,
                     "CPU": 20.0,
                     "LOAD_TIME": 6,
                     "IPS": 1000000,
@@ -72,7 +72,7 @@
                     "value": "d",
                     "name": "d",
                     "MODE": "COMPUTE",
-                    "RAM": 10240,
+                    "RAM": 100000,
                     "CPU": 20.0,
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
@@ -86,7 +86,7 @@
                     "value": "e",
                     "name": "e",
                     "MODE": "COMPUTE",
-                    "RAM": 10240,
+                    "RAM": 100000,
                     "CPU": 20.0,
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
@@ -100,7 +100,7 @@
                     "value": "f",
                     "name": "f",
                     "MODE": "COMPUTE",
-                    "RAM": 10240,
+                    "RAM": 100000,
                     "CPU": 20.0,
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
@@ -112,7 +112,8 @@
         "edges": [
             {
                 "data": {
-                    "bandwidth": 20.0000,
+                    "bandwidth": 30000.0000,
+                    "cost": 1,
                     "source": "a",
                     "target": "b",
                     "SNR": 30,
@@ -122,7 +123,8 @@
             },
             {
                 "data": {
-                    "bandwidth": 2500,
+                    "bandwidth": 30000,
+                    "cost": 1,
                     "source": "a",
                     "target": "c",
                     "SNR": 30,
@@ -132,7 +134,8 @@
             },
             {
                 "data": {
-                    "bandwidth": 1500,
+                    "bandwidth": 30000,
+                    "cost": 1,
                     "source": "a",
                     "target": "d",
                     "SNR": 30,
@@ -143,6 +146,7 @@
             {
                 "data": {
                     "bandwidth": 2800,
+                    "cost": 1,
                     "source": "c",
                     "target": "d",
                     "SNR": 30,
@@ -153,6 +157,7 @@
             {
                 "data": {
                     "bandwidth": 3000,
+                    "cost": 1,
                     "source": "c",
                     "target": "e",
                     "SNR": 30,
@@ -162,7 +167,8 @@
             },
             {
                 "data": {
-                    "bandwidth": 2500,
+                    "bandwidth": 30000,
+                    "cost": 1,
                     "source": "c",
                     "target": "f",
                     "SNR": 30,
@@ -172,7 +178,8 @@
             },
             {
                 "data": {
-                    "bandwidth": 2500,
+                    "bandwidth": 30000,
+                    "cost": 1,
                     "source": "e",
                     "target": "d",
                     "SNR": 30,
@@ -182,7 +189,8 @@
             },
             {
                 "data": {
-                    "bandwidth": 2500,
+                    "bandwidth": 30000,
+                    "cost": 1,
                     "source": "d",
                     "target": "b",
                     "SNR": 30,
@@ -193,6 +201,18 @@
             {
                 "data": {
                     "bandwidth": 30000,
+                    "cost": 10,
+                    "source": "CLOUD",
+                    "target": "f",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
                     "source": "zone_a",
                     "target": "a",
                     "SNR": 30,

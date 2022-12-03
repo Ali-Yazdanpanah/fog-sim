@@ -1,6 +1,7 @@
 from network import Topology as TP
 from network import Request as rq
 from functools import partial, wraps
+from stats import Statistics
 # from Topology import return_weight
 
 import simpy
@@ -55,21 +56,34 @@ if __name__ == "__main__":
             'f':{ 'replicas' : 1 },
             'CLOUD': { 'replicas' : 40}
         },
-        'RAM': 1024,
+        'RAM': 5000,
         'CPU': 2,
         'needs': ['back'],
 
     }),
     ('back',{
         'deployments':{
-            'a':{ 'replicas' : 2 },
+            'a':{ 'replicas' : 0 },
             'b':{ 'replicas' : 1 },
             'd':{ 'replicas' : 1 },
             'e':{ 'replicas' : 1 },
             'f':{ 'replicas' : 2 },
             'CLOUD': { 'replicas' : 40}
         },
-        'RAM': 2048,
+        'RAM': 5000,
+        'CPU': 10,
+        'needs': []
+    }),
+    ('back2',{
+        'deployments':{
+            'a':{ 'replicas' : 6 },
+            'b':{ 'replicas' : 0 },
+            'd':{ 'replicas' : 2 },
+            'e':{ 'replicas' : 1 },
+            'f':{ 'replicas' : 2 },
+            'CLOUD': { 'replicas' : 40}
+        },
+        'RAM': 8000,
         'CPU': 10,
         'needs': []
     })
@@ -90,9 +104,12 @@ if __name__ == "__main__":
     env.process(myTP.create_service_placement_table(services))
     env.process(myTP.place_services())
     # env.process(myTP.get_all_service_nodes('front'))
+    requests = []
     for i in range(1):
-            testRequest = rq(name='test '+str(i), source='zone_a', destinationService='front' ,size=32, instructions=100000, cpu=2, ram=512, sub=False, issuedBy='zone_a', masterService = 'none', masterRequest='none')
-            env.process(myTP.queue_request_for_transmition('zone_a',testRequest, (i+1)/10))
+            testRequest = rq(name='test '+str(i), source='zone_a', destinationService='front' ,size=24, instructions=100, cpu=0.02, ram=32, sub=False, issuedBy='zone_a', masterService = 'none', masterRequest='none', env=env)
+            requests += [testRequest]
+            env.process(myTP.queue_request_for_transmition('zone_a',testRequest, 0.2))
+
 
     # env.process(myTP.queue_request_for_transmition('zone_a',testRequest3, 2))
     # env.process(myTP.choose_request_destination('a',testRequest3))
@@ -100,9 +117,11 @@ if __name__ == "__main__":
     # env.process(myTP.process_recieved_requests_loop())
     env.process(myTP.start())
     
-    env.run(until=1000)
+    env.run(until=10000)
     # print(myTP.next_hop('a','d'))
-
+    stats = Statistics()
+    stats.calculate_average_response_time(requests)
+    myTP.stats.print_average_intra_latency()
     # for d in data:
     #     print(d)
     # print("Propgation time of d to c is: " + str(myTP.get_request_delivery_time('d','c')))
