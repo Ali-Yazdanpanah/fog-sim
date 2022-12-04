@@ -106,7 +106,7 @@ if __name__ == "__main__":
     # env.process(myTP.get_all_service_nodes('front'))
     # print("1")
     requests = []
-    for i in range(100):
+    for i in range(21):
             testRequest = rq(name='test '+str(i), source='zone_a', destinationService='front' ,size=24, instructions=1000000, cpu=1, ram=20, sub=False, issuedBy='zone_a', masterService = 'none', masterRequest='none', env=env)
             requests += [testRequest]
             env.process(myTP.queue_request_for_transmition('zone_a',testRequest, 10 + i/50))

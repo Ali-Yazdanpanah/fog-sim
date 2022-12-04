@@ -429,19 +429,20 @@ class Topology:
                     masterService = request.masterService.split('-')[0]
                     masterId = request.masterService.split('-')[1]
                     for item in self.nodeStores[reciever].items:
-                        for waitingReq in item.waitingStore.items:
-                            if waitingReq.id == request.masterRequest:
-                                waitingReq.satisfied -= 1
-                                print("One condition satisfied for ", waitingReq.name, " at ", reciever, " at ", str(self.env.now)) 
-                                if waitingReq.satisfied == 0: 
-                                    print("All conditions satisfied for ", waitingReq.name, " at ", reciever, " at ", str(self.env.now)) 
-                                    req = yield item.waitingStore.get(filter=lambda waitingReq: True)
-                                    print(item.waitingStore.items)
-                                    node = self.get_node(reciever)
-                                    requestExecutionTime = (req.instructions / (node[1]['IPS'])*1.000)
-                                    start_delayed(self.env ,self.finish_request(request=req, nodeID=reciever, serviceID=int(masterId), serviceName=masterService), requestExecutionTime)
-                                    break
-                        break
+                        if item.name == masterService and str(item.id) == masterId:
+                            for waitingReq in item.waitingStore.items:
+                                if waitingReq.id == request.masterRequest:
+                                    waitingReq.satisfied -= 1
+                                    print("One condition satisfied for ", waitingReq.name, " at ", reciever, " at ", str(self.env.now)) 
+                                    if waitingReq.satisfied == 0: 
+                                        print("All conditions satisfied for ", waitingReq.name, " at ", reciever, " at ", str(self.env.now)) 
+                                        req = yield item.waitingStore.get(filter=lambda waitingReq: True)
+                                        print(item.waitingStore.items)
+                                        node = self.get_node(reciever)
+                                        requestExecutionTime = (req.instructions / (node[1]['IPS'])*1.000)
+                                        start_delayed(self.env ,self.finish_request(request=req, nodeID=reciever, serviceID=int(masterId), serviceName=masterService), requestExecutionTime)
+                                        break
+                            #break
             else:
                 print("Packet ", request.name, " reached destination ", reciever, " at ", str(self.env.now),"| Response: ", request.response)
                 for item in self.nodeStores[reciever].items:
@@ -497,7 +498,6 @@ class Topology:
                                     requestExecutionTime = (waitingReq.instructions / (node[1]['IPS'])*1.000)
                                     start_delayed(self.env ,self.finish_request(request=waitingReq, nodeID=nodeID, serviceID=int(masterId), serviceName=masterService), requestExecutionTime)
                                     break
-                        break
         else:
             print("Packet ", request.name, " already at destination ", nodeID, " at ", str(self.env.now),"| Response: ", request.response)
             for item in self.nodeStores[nodeID].items:
