@@ -2,8 +2,8 @@ from util import AutoVivification
 
 class Statistics:
     def __init__(self):
-        self.cpuUtilizationRate = AutoVivification()
-        self.memUtilizationRate = AutoVivification()
+        self.cpuUtilizationRates = AutoVivification()
+        self.memUtilizationRates = AutoVivification()
         self.request = AutoVivification()
         self.averageIntraResponseTime = 0
         self.intraPacketCount = 0

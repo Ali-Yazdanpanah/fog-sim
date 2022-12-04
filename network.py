@@ -87,7 +87,7 @@ class Topology:
             self.nodeStores[node[0]] = simpy.FilterStore(self.env)
             self.recievedRequests[node[0]] = simpy.Store(self.env)
             self.transmitionQueues[node[0]] = simpy.Store(self.env)
-            self.internalQueues[node[0]] = simpy.Store(self.env)
+            self.internalQueues[node[0]] = simpy.FilterStore(self.env)
             # print(node[1])
             if node[1]['MODE'] == 'COMPUTE' or node[1]['MODE'] == 'CLOUD':
                 self.nodeServiceStores[node[0]] = simpy.FilterStore(self.env)
@@ -106,32 +106,55 @@ class Topology:
 
     def get_cpu_utilization_rate(self, nodeID):
         node = self.get_node(nodeID)
-        totalUsed = 0
-        for service in node.nodeStores.items:
-            if len(service.serviceStore.items) > 0:
-                for request in service.serviceStore:
-                    totalUsed += request.cpu
-        return totalUsed
+        rate = (node[1]['CPU'] - self.remainingCPU[nodeID])/node[1]['CPU']
+        return rate
     
     def get_all_nodes_cpu_utilization_rate(self):
-        return {node[0] : self.get_cpu_utilization_rate(node) for node in self.get_nodes()}
+        return {node[0] : self.get_cpu_utilization_rate(node[0]) for node in self.get_compute_nodes()}
 
 
     def get_mem_utilization_rate(self, nodeID):
         node = self.get_node(nodeID)
-        totalUsed = 0
-        for service in node.nodeStores.items:
-            if len(service.serviceStore.items) > 0:
-                for request in service.serviceStore:
-                    totalUsed += request.ram
-        return totalUsed
-    
+        # print(nodeID)
+        # print(self.remainingMEM[nodeID])
+        rate = (node[1]['RAM'] - self.remainingMEM[nodeID])/node[1]['RAM']
+        return rate
+
     def get_all_nodes_mem_utilization_rate(self):
-        return { node[0] : self.get_mem_utilization_rate(node) for node in self.get_nodes()}
+        return {node[0] : self.get_mem_utilization_rate(node[0]) for node in self.get_compute_nodes()}
      
-              
+    def get_utilization_rates(self):
+        self.stats.cpuUtilizationRates[self.env.now] = self.get_all_nodes_cpu_utilization_rate()
+        self.stats.memUtilizationRates[self.env.now] = self.get_all_nodes_mem_utilization_rate()
+        yield self.env.timeout(0)
 
+    def all_cpu_utilization_average(self):
+        count = 0
+        sum = dict()
+        records =  self.stats.cpuUtilizationRates
+        for node in self.get_compute_nodes():
+            sum[node[0]] = 0
+        for record in records:
+            for entry in records[record]:
+                sum[entry] += records[record][entry]
+            count += 1
+        for entry in sum:
+            sum[entry] = sum[entry]/count
+        return sum
 
+    def all_mem_utilization_average(self):
+        count = 0
+        sum = dict()
+        records = self.stats.memUtilizationRates
+        for node in self.get_compute_nodes():
+            sum[node[0]] = 0
+        for record in records:
+            for entry in records[record]:
+                sum[entry] += records[record][entry]
+            count += 1
+        for entry in sum:
+            sum[entry] = sum[entry]/count
+        return sum
     #===============================================================
     # service
     # / These are service placement related functions
@@ -158,11 +181,11 @@ class Topology:
             self.placementTable[service[0]] = service[1] 
         yield self.env.timeout(0)
         
-    def get_nodes_with_service(self,serviceName):
-        return [v for v in self.placementTable[serviceName]['deployments'] if self.placementTable[serviceName]['deployments'][v]['replicas'] > 0 ]
+    def get_nodes_with_service(self,current,serviceName,request):
+        return [v for v in self.placementTable[serviceName]['deployments'] if (self.placementTable[serviceName]['deployments'][v]['replicas'] > 0 and v not in request.history )]
 
     def choose_request_destination(self, current, request):
-        possibleDestination = [(node,nx.path_weight(G=self.G, path=self.routingTable[current][node][0], weight='cost')) for node in self.get_nodes_with_service(request.destinationService)]
+        possibleDestination = [(node,nx.path_weight(G=self.G, path=self.routingTable[current][node][0], weight='cost')) for node in self.get_nodes_with_service(current,request.destinationService,request)]
         # print(possibleDestination)
         min = 100
         next = 0
@@ -363,6 +386,9 @@ class Topology:
             for item in self.nodeStores[nodeID].items:
                 if item.name == request.destinationService and item.id == serviceID:
                     item.waitingStore.put(request)
+                    print(item.waitingStore.items)
+                    for req in item.waitingStore.items:
+                        print("master req ID: ", req.id, item.name)
                     print("Request ", request.name, " needs ", request.satisfied," other services putting in waiting queue at ", request.destinationNode ," in service ", item.name, " at ", str(self.env.now))
                     break
         else:
@@ -410,6 +436,7 @@ class Topology:
                                 if waitingReq.satisfied == 0: 
                                     print("All conditions satisfied for ", waitingReq.name, " at ", reciever, " at ", str(self.env.now)) 
                                     req = yield item.waitingStore.get(filter=lambda waitingReq: True)
+                                    print(item.waitingStore.items)
                                     node = self.get_node(reciever)
                                     requestExecutionTime = (req.instructions / (node[1]['IPS'])*1.000)
                                     start_delayed(self.env ,self.finish_request(request=req, nodeID=reciever, serviceID=int(masterId), serviceName=masterService), requestExecutionTime)
@@ -435,20 +462,21 @@ class Topology:
                             self.start_request_process(request=request, nodeID=reciever, serviceID=item.id, serviceName=item.name)
                             yield item.serviceStore.put(request)
                             break
-                        else:
-                            if request.failed >= 4:
-                                request.destinationNode = 'CLOUD'
-                            else:
-                                request.destinationNode = 'NA'
-                                request.failed += 1
-                            print("No resource for request ", request.name, " on node", reciever, "...puting in queue at", str(self.env.now))
-                            yield self.transmitionQueues[reciever].put(request)
+                else:
+                    request.history += [request.destinationNode]
+                    if request.failed >= 4:
+                        request.destinationNode = 'CLOUD'
+                    else:
+                        request.destinationNode = 'NA'
+                        request.failed += 1
+                    print("No resource for request ", request.name, " on node", reciever, "...puting in queue at", str(self.env.now))
+                    yield self.transmitionQueues[reciever].put(request)
         else:
             print("Packet ", request.name, " recieved at", reciever, "...puting in queue at", str(self.env.now),"| Response: ", request.response)
             yield self.transmitionQueues[reciever].put(request) 
     
     def recieve_internal_request(self, nodeID, request):
-        yield self.internalQueues[nodeID].get() 
+        yield self.internalQueues[nodeID].get(filter=lambda request: True) 
         if request.response:
             request.responseTime = self.env.now
             print("Recieved internal response of packet ", request.name, " at ", nodeID, " at ", str(self.env.now),"| Response: ", request.response)
@@ -456,18 +484,20 @@ class Topology:
                 masterService = request.masterService.split('-')[0]
                 masterId = request.masterService.split('-')[1]
                 for item in self.nodeStores[nodeID].items:
-                    for waitingReq in item.waitingStore.items:
-                        if waitingReq.id == request.masterRequest:
-                            waitingReq.satisfied -= 1
-                            print("One condition satisfied for ", waitingReq.name, " at ", nodeID, " at ", str(self.env.now)) 
-                            if waitingReq.satisfied == 0: 
-                                print("All conditions satisfied for ", waitingReq.name, " at ", nodeID, " at ", str(self.env.now)) 
-                                yield item.waitingStore.get(filter=lambda waitingReq: True)
-                                node = self.get_node(nodeID)
-                                requestExecutionTime = (waitingReq.instructions / (node[1]['IPS'])*1.000)
-                                start_delayed(self.env ,self.finish_request(request=waitingReq, nodeID=nodeID, serviceID=int(masterId), serviceName=masterService), requestExecutionTime)
-                                break
-                    break
+                    # print(item.name+"-"+item.id)
+                    if item.name == masterService and str(item.id) == masterId:
+                        for waitingReq in item.waitingStore.items:
+                            if waitingReq.id == request.masterRequest:
+                                waitingReq.satisfied -= 1
+                                print("One condition satisfied for ", waitingReq.name, " at ", nodeID, " at ", str(self.env.now)) 
+                                if waitingReq.satisfied == 0: 
+                                    print("All conditions satisfied for ", waitingReq.name, " at ", nodeID, " at ", str(self.env.now)) 
+                                    req = yield item.waitingStore.get(filter=lambda waitingReq: True)
+                                    node = self.get_node(nodeID)
+                                    requestExecutionTime = (waitingReq.instructions / (node[1]['IPS'])*1.000)
+                                    start_delayed(self.env ,self.finish_request(request=waitingReq, nodeID=nodeID, serviceID=int(masterId), serviceName=masterService), requestExecutionTime)
+                                    break
+                        break
         else:
             print("Packet ", request.name, " already at destination ", nodeID, " at ", str(self.env.now),"| Response: ", request.response)
             for item in self.nodeStores[nodeID].items:
@@ -489,14 +519,15 @@ class Topology:
                         self.start_request_process(request=request, nodeID=nodeID, serviceID=item.id, serviceName=item.name)
                         yield item.serviceStore.put(request)
                         break
-                    else:
-                        if request.failed >= 4:
-                            request.destinationNode = 'CLOUD'
-                        else:
-                            request.destinationNode = 'NA'
-                            request.failed += 1
-                        print("No resource for request ", request.name, " on node", nodeID, "...puting in queue at", str(self.env.now))
-                        yield self.transmitionQueues[nodeID].put(request)
+            else:
+                request.history += [request.destinationNode]
+                if request.failed >= 4:
+                    request.destinationNode = 'CLOUD'
+                else:
+                    request.destinationNode = 'NA'
+                    request.failed += 1
+                print("No resource for request ", request.name, " on node", nodeID, "...puting in queue at", str(self.env.now))
+                yield self.transmitionQueues[nodeID].put(request)
         return True
     def transmit_request(self, request, sender, reciever):
         # yield self.env.timeout(delay)
@@ -528,8 +559,7 @@ class Topology:
                             start_delayed(self.env ,self.transmit_request(request=request, sender=current[0], reciever=next), delay)
                         else:
                             self.internalQueues[current[0]].put(request)
-                            for a in self.recieve_internal_request(current[0],request):
-                                pass
+                            start_delayed(self.env ,self.recieve_internal_request(current[0],request), 0.0000001)
 
                 if current[1]["MODE"] == "ZONE":
                     if len(self.transmitionQueues[current[0]].items) > 0:
@@ -770,7 +800,7 @@ class Request:
         self.ram = ram
         self.cpu = cpu
         self.instructions = instructions
-        self.issueTime = env.now
+        self.issueTime = 0
         self.responseTime = 0
         self.logger = logger or logging.getLogger(__name__) 
         self.response = False
@@ -780,6 +810,7 @@ class Request:
         self.issuedBy = issuedBy
         self.masterService = masterService
         self.masterRequest = masterRequest
+        self.history = []
         self.latency = 0
 
 
