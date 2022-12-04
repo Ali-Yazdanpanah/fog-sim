@@ -7,8 +7,23 @@ from simpy.util import start_delayed
 import simpy
 import matplotlib.pyplot as plt
 import networkx as nx
+from util import AutoVivification
+import numpy as np
 
-def trace(env, callback):
+
+
+
+
+
+def test_process(env):
+    yield env.timeout(1)
+
+def start(service_mapping_matrix): 
+
+    def monitor(data, t, prio, eid, event):
+        data.append((t, eid, type(event))) 
+
+    def trace(env, callback):
         """Replace the ``step()`` method of *env* with a tracing function
         that calls *callbacks* with an events time, priority, ID and its
         instance just before it is processed.
@@ -26,17 +41,7 @@ def trace(env, callback):
                 return env_step()
             return tracing_step
         env.step = get_wrapper(env.step, callback)
-
-
-def monitor(data, t, prio, eid, event):
-    data.append((t, eid, type(event)))
-
-def test_process(env):
-    yield env.timeout(1)
-
-
-if __name__ == "__main__":
-    
+        
     env = simpy.Environment()    
     myTP = TP(jsonFile='./test_graph.json', env=env)
     myTP.create_routing_table()
@@ -44,15 +49,21 @@ if __name__ == "__main__":
 
     myTP.load_cyjs('./test_graph.json')
 
+    START = 9
+    FINISH = 12
+    CHECK_INTERVAL = 0.1
+    SEND_RATE = 100
+    REQUEST_COUNT = 202
 
 
-    services = [
-    ('front',{
+
+
+    services = [['front',{
         'deployments':{
             'a':{ 'replicas' : 0 },
             'b':{ 'replicas' : 0 },
             'd':{ 'replicas' : 0 },
-            'e':{ 'replicas' : 0 },
+            'e':{ 'replicas' : 5 },
             'f':{ 'replicas' : 0 },
             'CLOUD': { 'replicas' : 100}
         },
@@ -60,8 +71,8 @@ if __name__ == "__main__":
         'CPU': 10,
         'needs': ['back','back2'],
 
-    }),
-    ('back',{
+    }],
+    ['back',{
         'deployments':{
             'a':{ 'replicas' : 1 },
             'b':{ 'replicas' : 1 },
@@ -73,22 +84,30 @@ if __name__ == "__main__":
         'RAM': 5000,
         'CPU': 10,
         'needs': []
-    }),
-    ('back2',{
+    }],
+    ['back2',{
         'deployments':{
             'a':{ 'replicas' : 2 },
             'b':{ 'replicas' : 2 },
             'd':{ 'replicas' : 1 },
             'e':{ 'replicas' : 2 },
             'f':{ 'replicas' : 0 },
-            'CLOUD': { 'replicas' : 0}
+            'CLOUD': { 'replicas' : 100}
         },
         'RAM': 8000,
         'CPU': 10,
         'needs': []
-    })
-    ]
+    }]]
 
+    # new = services
+
+    compute_nodes = [node[0] for node in myTP.get_compute_nodes()]
+    # 6 nods, 3 services
+    input_array = np.array(service_mapping_matrix)
+    for index in range(len(input_array)):
+        for index2 in range(len(compute_nodes)):
+            services[index][1]['deployments'][compute_nodes[index2]]['replicas'] = input_array[index][index2]
+    # print(services == new)
  # # print("Packet delivery time for request from a to b is: " + str(myTP.get_request_delivery_time('b','a',testPacket)) + " Seconds")
 
     
@@ -99,22 +118,31 @@ if __name__ == "__main__":
 
     trace(env, monitor)
 
-    # myTP.save_network_png('./test.png')
+    myTP.save_network_png('./test.png')
     env.process(myTP.create_service_table(services))
     env.process(myTP.create_service_placement_table(services))
     env.process(myTP.place_services())
     # env.process(myTP.get_all_service_nodes('front'))
     # print("1")
     requests = []
-    for i in range(21):
-            testRequest = rq(name='test '+str(i), source='zone_a', destinationService='front' ,size=24, instructions=1000000, cpu=1, ram=20, sub=False, issuedBy='zone_a', masterService = 'none', masterRequest='none', env=env)
-            requests += [testRequest]
-            env.process(myTP.queue_request_for_transmition('zone_a',testRequest, 10 + i/50))
-    # print("2")
-    for i in range(9,14):
-            start_delayed(myTP.env, myTP.get_utilization_rates(), i)
-            start_delayed(myTP.env,myTP.get_utilization_rates(), i+0.5)
 
+    for i in range(REQUEST_COUNT):
+            testRequest = rq(name='test '+str(i), source='zone_a', destinationService='front' ,size=24, instructions=1000000, cpu=0.2, ram=20, sub=False, issuedBy='zone_a', masterService = 'none', masterRequest='none', env=env)
+            requests += [testRequest]
+            env.process(myTP.queue_request_for_transmition('zone_a',testRequest, START + i/SEND_RATE))
+    # print("2")
+    uptime = 0
+    for i in range(START,FINISH+1):
+            uptime += 1
+            for q in range(int(1/CHECK_INTERVAL)):
+                start_delayed(myTP.env,myTP.get_utilization_rates(), i+(q*CHECK_INTERVAL))
+
+    cost = AutoVivification()
+    for node in myTP.G.nodes(data=True):
+        try:
+            cost[node[0]] = node[1]['COST'] * uptime
+        except:
+            pass
     # print("3")
     # env.process(myTP.queue_request_for_transmition('zone_a',testRequest3, 2))
     # env.process(myTP.choose_request_destination('a',testRequest3))
@@ -125,10 +153,18 @@ if __name__ == "__main__":
     env.run(until=200)
     # print(myTP.next_hop('a','d'))
     stats = Statistics()
-    stats.calculate_average_response_time(requests)
-    myTP.stats.print_average_intra_latency()
-    print('CPU util avg: ',myTP.all_cpu_utilization_average())
-    print('MEM util avg: ',myTP.all_mem_utilization_average())
+    results = AutoVivification()
+    # stats.calculate_average_response_time(requests)
+    # myTP.stats.print_average_intra_latency()
+    # print('CPU: ',myTP.all_cpu_utilization_average())
+    # print('MEM: ',myTP.all_mem_utilization_average())
+    # print('COST: ',cost)
+    results['AVG_LATENCY'] = stats.calculate_average_response_time(requests)
+    results['AVG_INTRA_LATENCY'] = myTP.stats.get_average_intra_latency()
+    results['CPU'] = myTP.all_cpu_utilization_average()
+    results['MEM'] = myTP.all_mem_utilization_average()
+    results['COST'] = cost
+    return results
     # for d in data:
     #     print(d)
     # print("Propgation time of d to c is: " + str(myTP.get_request_delivery_time('d','c')))
@@ -142,3 +178,8 @@ if __name__ == "__main__":
     # myTP.all_shortest_path_weight()
     # myTP.print_graph()
     # myTP.dump_cyjs(jsonFile='dump.json')
+
+
+if __name__ == "__main__":
+    results = start([[0, 0, 2, 1, 0, 100], [1, 1, 2, 3, 1, 100], [2, 2, 1, 2, 0, 100]])
+    print(results)

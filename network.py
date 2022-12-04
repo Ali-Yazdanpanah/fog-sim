@@ -386,9 +386,6 @@ class Topology:
             for item in self.nodeStores[nodeID].items:
                 if item.name == request.destinationService and item.id == serviceID:
                     item.waitingStore.put(request)
-                    print(item.waitingStore.items)
-                    for req in item.waitingStore.items:
-                        print("master req ID: ", req.id, item.name)
                     print("Request ", request.name, " needs ", request.satisfied," other services putting in waiting queue at ", request.destinationNode ," in service ", item.name, " at ", str(self.env.now))
                     break
         else:

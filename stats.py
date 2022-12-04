@@ -10,8 +10,8 @@ class Statistics:
         self.averageCPUUtilizationRate = 0 
         self.averageMEMUtilizationRate = 0 
 
-    def print_average_intra_latency(self):
-        print("Average intra Request Latency: " , self.averageIntraResponseTime)
+    def get_average_intra_latency(self):
+        return self.averageIntraResponseTime
 
     def calculate_average_response_time(self,requests):
         count = 0
@@ -19,7 +19,7 @@ class Statistics:
         for request in requests:
             sum += request.latency
             count += 1
-        print("Average Request Latency: " , sum/count)
+        return sum/count
 
     
     def get_cpu_utilization_rate(topology):
