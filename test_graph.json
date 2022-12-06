@@ -15,8 +15,8 @@
                     "IPS": 9000000,
                     "LOAD_TIME": 6,
                     "COST": 10,
-                    "X": 1500,
-                    "Y": 1500
+                    "X": 2100,
+                    "Y": 2100
                 }
             },
             {
@@ -41,7 +41,7 @@
                     "name": "zone_a",
                     "MODE": "ZONE",
                     "X": 0,
-                    "Y": 0
+                    "Y": -200
                 }
             },
             {
@@ -56,7 +56,7 @@
                     "LOAD_TIME": 6,
                     "IPS": 1000000,
                     "X": 100,
-                    "Y": 300
+                    "Y": 900
                 }
             },
             {
@@ -82,7 +82,7 @@
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 500,
-                    "Y": 500
+                    "Y": 560
                 }
             },
             {
@@ -112,14 +112,191 @@
                     "IPS": 1000000,
                     "LOAD_TIME": 6,
                     "X": 1000,
-                    "Y": 500
+                    "Y": 900
+                }
+            },
+           
+            {
+                "data": {
+                    "id": "g",
+                    "value": "g",
+                    "name": "g",
+                    "MODE": "COMPUTE",
+                    "RAM": 10000,
+                    "CPU": 40.0,
+                    "IPS": 1000000,
+                    "COST": 1,
+                    "LOAD_TIME": 6,
+                    "X": 1800,
+                    "Y": 30
+                }
+            },
+            {
+                "data": {
+                    "id": "zone_b",
+                    "value": "zone_b",
+                    "name": "zone_b",
+                    "MODE": "ZONE",
+                    "X": 2000,
+                    "Y": 800
+                }
+            },
+            {
+                "data": {
+                    "id": "zone_c",
+                    "value": "zone_c",
+                    "name": "zone_c",
+                    "MODE": "ZONE",
+                    "X": 30,
+                    "Y": 2000
+                }
+            },
+            {
+                "data": {
+                    "id": "zone_d",
+                    "value": "zone_d",
+                    "name": "zone_d",
+                    "MODE": "ZONE",
+                    "X": 2600,
+                    "Y": -10
+                }
+            },
+            {
+                "data": {
+                    "id": "h",
+                    "value": "h",
+                    "name": "h",
+                    "MODE": "COMPUTE",
+                    "COST": 1,
+                    "RAM": 10000,
+                    "CPU": 40.0,
+                    "LOAD_TIME": 6,
+                    "IPS": 1000000,
+                    "X": 1110,
+                    "Y": 320
+                }
+            },
+            {
+                "data": {
+                    "id": "i",
+                    "value": "i",
+                    "name": "i",
+                    "MODE": "ROUTER",
+                    "COST": 1,
+                    "X": 900,
+                    "Y": 1200
+                }
+            },
+            {
+                "data": {
+                    "id": "j",
+                    "value": "j",
+                    "name": "j",
+                    "MODE": "COMPUTE",
+                    "COST": 1,
+                    "RAM": 10000,
+                    "CPU": 40.0,
+                    "IPS": 1000000,
+                    "LOAD_TIME": 6,
+                    "X": 289,
+                    "Y": 1400
+                }
+            },
+            {
+                "data": {
+                    "id": "k",
+                    "value": "k",
+                    "name": "k",
+                    "MODE": "COMPUTE",
+                    "COST": 1,
+                    "RAM": 10000,
+                    "CPU": 50.0,
+                    "IPS": 1000000,
+                    "LOAD_TIME": 6,
+                    "X": 1200,
+                    "Y": 2000
+                }
+            },
+            {
+                "data": {
+                    "id": "l",
+                    "value": "l",
+                    "name": "l",
+                    "MODE": "COMPUTE",
+                    "COST": 1,
+                    "RAM": 10000,
+                    "CPU": 40.0,
+                    "IPS": 1000000,
+                    "LOAD_TIME": 6,
+                    "X": 440,
+                    "Y": 1900
+                }
+            },
+            {
+                "data": {
+                    "id": "m",
+                    "value": "m",
+                    "name": "m",
+                    "MODE": "COMPUTE",
+                    "COST": 1,
+                    "RAM": 10000,
+                    "CPU": 40.0,
+                    "IPS": 1000000,
+                    "LOAD_TIME": 6,
+                    "X": 1700,
+                    "Y": 1200
+                }
+            },
+            {
+                "data": {
+                    "id": "n",
+                    "value": "n",
+                    "name": "n",
+                    "MODE": "COMPUTE",
+                    "COST": 1,
+                    "RAM": 10000,
+                    "CPU": 40.0,
+                    "IPS": 1000000,
+                    "LOAD_TIME": 6,
+                    "X": 1500,
+                    "Y": 1500
+                }
+            },
+            {
+                "data": {
+                    "id": "o",
+                    "value": "o",
+                    "name": "o",
+                    "MODE": "COMPUTE",
+                    "COST": 1,
+                    "RAM": 10000,
+                    "CPU": 40.0,
+                    "IPS": 1000000,
+                    "LOAD_TIME": 6,
+                    "X": 800,
+                    "Y": 1980
+                }
+            },
+            {
+                "data": {
+                    "id": "p",
+                    "value": "p",
+                    "name": "p",
+                    "MODE": "COMPUTE",
+                    "COST": 1,
+                    "RAM": 10000,
+                    "CPU": 40.0,
+                    "IPS": 1000000,
+                    "LOAD_TIME": 6,
+                    "X": 1200,
+                    "Y": 1200
                 }
             }
         ],
         "edges": [
             {
                 "data": {
-                    "bandwidth": 30000.0000,
+                    "bandwidth": 30000,
                     "cost": 1,
                     "source": "a",
                     "target": "b",
@@ -188,7 +365,7 @@
                     "bandwidth": 30000,
                     "cost": 1,
                     "source": "e",
-                    "target": "d",
+                    "target": "f",
                     "SNR": 30,
                     "PS": 300000000,
                     "PL": 0
@@ -196,7 +373,7 @@
             },
             {
                 "data": {
-                    "bandwidth": 30000,
+                    "bandwidth": 23000,
                     "cost": 1,
                     "source": "d",
                     "target": "b",
@@ -208,8 +385,8 @@
             {
                 "data": {
                     "bandwidth": 30000,
-                    "cost": 10,
-                    "source": "CLOUD",
+                    "cost": 1,
+                    "source": "g",
                     "target": "f",
                     "SNR": 30,
                     "PS": 300000000,
@@ -220,13 +397,214 @@
                 "data": {
                     "bandwidth": 30000,
                     "cost": 1,
-                    "source": "zone_a",
-                    "target": "a",
+                    "source": "g",
+                    "target": "c",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "h",
+                    "target": "g",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 2800,
+                    "cost": 1,
+                    "source": "h",
+                    "target": "f",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 3000,
+                    "cost": 1,
+                    "source": "i",
+                    "target": "f",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 28000,
+                    "cost": 1,
+                    "source": "i",
+                    "target": "l",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 29000,
+                    "cost": 1,
+                    "source": "j",
+                    "target": "h",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "i",
+                    "target": "zone_b",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 15000,
+                    "cost": 1,
+                    "source": "i",
+                    "target": "CLOUD",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 31000,
+                    "cost": 1,
+                    "source": "k",
+                    "target": "CLOUD",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 20000,
+                    "cost": 1,
+                    "source": "a",
+                    "target": "zone_a",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "j",
+                    "target": "l",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "b",
+                    "target": "j",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "m",
+                    "target": "n",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "n",
+                    "target": "o",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "o",
+                    "target": "p",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "o",
+                    "target": "n",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 30000,
+                    "cost": 1,
+                    "source": "m",
+                    "target": "CLOUD",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 31000,
+                    "cost": 1,
+                    "source": "zone_c",
+                    "target": "l",
+                    "SNR": 30,
+                    "PS": 300000000,
+                    "PL": 0
+                }
+            },
+            {
+                "data": {
+                    "bandwidth": 31000,
+                    "cost": 1,
+                    "source": "zone_d",
+                    "target": "g",
                     "SNR": 30,
                     "PS": 300000000,
                     "PL": 0
                 }
             }
-        ]
+
+
+        ]            
+        
     }
 }

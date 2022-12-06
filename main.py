@@ -52,19 +52,29 @@ def start(service_mapping_matrix):
     START = 9
     FINISH = 12
     CHECK_INTERVAL = 0.1
-    SEND_RATE = 100
-    REQUEST_COUNT = 202
+    SEND_RATE = 10
+    REQUEST_COUNT = 100
+
 
 
 
 
     services = [['front',{
         'deployments':{
-            'a':{ 'replicas' : 0 },
+            'a':{ 'replicas' : 1 },
             'b':{ 'replicas' : 0 },
             'd':{ 'replicas' : 0 },
             'e':{ 'replicas' : 5 },
             'f':{ 'replicas' : 0 },
+            'g':{ 'replicas' : 0 },
+            'h':{ 'replicas' : 0 },
+            'j':{ 'replicas' : 5 },
+            'k':{ 'replicas' : 0 },
+            'l':{ 'replicas' : 0 },
+            'm':{ 'replicas' : 0 },
+            'n':{ 'replicas' : 5 },
+            'o':{ 'replicas' : 0 },
+            'p':{ 'replicas' : 0 },
             'CLOUD': { 'replicas' : 100}
         },
         'RAM': 5000,
@@ -79,6 +89,15 @@ def start(service_mapping_matrix):
             'd':{ 'replicas' : 2 },
             'e':{ 'replicas' : 3 },
             'f':{ 'replicas' : 1 },
+            'g':{ 'replicas' : 0 },
+            'h':{ 'replicas' : 0 },
+            'j':{ 'replicas' : 5 },
+            'k':{ 'replicas' : 0 },
+            'l':{ 'replicas' : 0 },
+            'm':{ 'replicas' : 0 },
+            'n':{ 'replicas' : 5 },
+            'o':{ 'replicas' : 0 },
+            'p':{ 'replicas' : 0 },
             'CLOUD': { 'replicas' : 100}
         },
         'RAM': 5000,
@@ -92,6 +111,15 @@ def start(service_mapping_matrix):
             'd':{ 'replicas' : 1 },
             'e':{ 'replicas' : 2 },
             'f':{ 'replicas' : 0 },
+            'g':{ 'replicas' : 0 },
+            'h':{ 'replicas' : 1 },
+            'j':{ 'replicas' : 5 },
+            'k':{ 'replicas' : 0 },
+            'l':{ 'replicas' : 1 },
+            'm':{ 'replicas' : 1 },
+            'n':{ 'replicas' : 5 },
+            'o':{ 'replicas' : 0 },
+            'p':{ 'replicas' : 0 },
             'CLOUD': { 'replicas' : 100}
         },
         'RAM': 8000,
@@ -128,6 +156,7 @@ def start(service_mapping_matrix):
 
     for i in range(REQUEST_COUNT):
             testRequest = rq(name='test '+str(i), source='zone_a', destinationService='front' ,size=24, instructions=1000000, cpu=0.2, ram=20, sub=False, issuedBy='zone_a', masterService = 'none', masterRequest='none', env=env)
+            # testRequest = rq(name='test '+str(i), source='zone_b', destinationService='front' ,size=24, instructions=1000000, cpu=0.5, ram=20, sub=False, issuedBy='zone_b', masterService = 'none', masterRequest='none', env=env)
             requests += [testRequest]
             env.process(myTP.queue_request_for_transmition('zone_a',testRequest, START + i/SEND_RATE))
     # print("2")
@@ -143,6 +172,8 @@ def start(service_mapping_matrix):
             cost[node[0]] = node[1]['COST'] * uptime
         except:
             pass
+
+    
     # print("3")
     # env.process(myTP.queue_request_for_transmition('zone_a',testRequest3, 2))
     # env.process(myTP.choose_request_destination('a',testRequest3))
@@ -163,8 +194,15 @@ def start(service_mapping_matrix):
     results['AVG_INTRA_LATENCY'] = myTP.stats.get_average_intra_latency()
     results['CPU'] = myTP.all_cpu_utilization_average()
     results['MEM'] = myTP.all_mem_utilization_average()
-    results['COST'] = cost
-    return results
+
+    sum = 0 
+    for i in cost.values():
+        sum += i
+    avg_cost = sum / len(node[1])
+    print('AVG_COST : '  , avg_cost)
+
+    results['COST'] = cost 
+    return results 
     # for d in data:
     #     print(d)
     # print("Propgation time of d to c is: " + str(myTP.get_request_delivery_time('d','c')))
@@ -181,5 +219,5 @@ def start(service_mapping_matrix):
 
 
 if __name__ == "__main__":
-    results = start([[0, 0, 2, 1, 0, 100], [1, 1, 2, 3, 1, 100], [2, 2, 1, 2, 0, 100]])
+    results = start([[1, 2, 1, 1, 1, 1, 0, 1, 0, 1, 2, 3, 0 , 1,100], [1 ,1 ,1, 2, 1, 2, 1, 2, 3, 1, 2, 1, 1, 1, 100], [0 , 0, 1, 1, 1 ,2, 2, 1, 2, 0, 1, 2, 3, 3, 100]])
     print(results)

@@ -462,7 +462,7 @@ class Topology:
                             break
                 else:
                     request.history += [request.destinationNode]
-                    if request.failed >= 4:
+                    if request.failed >= 10:
                         request.destinationNode = 'CLOUD'
                     else:
                         request.destinationNode = 'NA'
@@ -681,7 +681,7 @@ class Topology:
             nodesPosY[node] = [nodesPosX[node], nodesPosY[node]]
         # print(nodesPosY)
         # nodes
-        nx.draw_networkx_nodes(self.G, nodesPosY, node_size=600)
+        nx.draw_networkx_nodes(self.G, nodesPosY, node_size=400)
 
         # edges
         nx.draw_networkx_edges(self.G, nodesPosY, edgelist=elarge, width=6)
@@ -690,7 +690,7 @@ class Topology:
         )
 
         # node labels
-        nx.draw_networkx_labels(self.G, nodesPosY, font_size=20, font_family="sans-serif")
+        nx.draw_networkx_labels(self.G, nodesPosY, font_size=15, font_family="sans-serif")
         # edge bandwidth labels
         edge_labels = nx.get_edge_attributes(self.G, "bandwidth")
         nx.draw_networkx_edge_labels(self.G, nodesPosY, edge_labels)
